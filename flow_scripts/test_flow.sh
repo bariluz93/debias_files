@@ -3,7 +3,7 @@ set -e
 
 
 SHORT=c,p,t,d,b,e,m:,h
-LONG=collect_embedding_table,preprocess,translate,debias_encoder,begining_decoder_debias,end_decoder_debias,model:,help
+LONG=collect_embedding_table,preprocess,translate,debias_encoder,beginning_decoder_debias,end_decoder_debias,model:,help
 OPTS=$(getopt -a -n debias --options $SHORT --longoptions $LONG -- "$@")
 
 eval set -- "$OPTS"
@@ -12,7 +12,7 @@ collect_embedding_table=""
 preprocess=""
 translate=""
 debias_encoder=""
-begining_decoder_debias=""
+beginning_decoder_debias=""
 end_decoder_debias=""
 model=""
 while :
@@ -34,8 +34,8 @@ do
       debias_encoder="-e"
       shift 1
       ;;
-    -b | --begining_decoder_debias )
-      begining_decoder_debias="-ds"
+    -b | --beginning_decoder_debias )
+      beginning_decoder_debias="-ds"
       shift 1
       ;;
     -e | --end_decoder_debias )
@@ -55,10 +55,10 @@ Optional arguments:
   -p, --preprocess                preprocess the anti dataset .
   -t, --translate                 translate the entire dataset .
   -e, --debias_encoder            debias the encoder .
-  -ds --begining_decoder_debias   debias the decoder inputs .
+  -ds --beginning_decoder_debias   debias the decoder inputs .
   -de --end_decoder_debias        debias the decoder outputs .
   -h, --help                      help message .
-if none of debias_encoder, begining_decoder_debias, end_decoder_debias is selected, debias_encoder is selected defaultly"
+if none of debias_encoder, beginning_decoder_debias, end_decoder_debias is selected, debias_encoder is selected defaultly"
 
       exit 2
       ;;

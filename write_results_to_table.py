@@ -8,6 +8,7 @@ import csv
 import math
 from datetime import datetime
 from pathlib import Path
+import ast
 
 LANGUAGES =LANGUAGE_STR_MAP.values()
 DEBIAS_METHODS = [d.value for d in DebiasMethod]
@@ -34,28 +35,45 @@ def get_gender_results(file_name):
                 debiased_found = True
             if line.__contains__("*non debiased results*"):
                 non_debiased_found = True
+            # get general accuracy
             match = re.search("{\"acc\": (.*), \"f1_male\": .*, \"f1_female\": .*, \"unk_male\": .*, \"unk_female\": .*, \"unk_neutral\": .*}",line)
             if match:
                 accuracy = match.group(1)
                 if debiased_found:
                     result["debiased"] = float(accuracy)
-                    debiased_found = False
                 elif non_debiased_found:
                     result["non_debiased"] = float(accuracy)
+            #get professions accuracy
+            if line.startswith("professions accuracies"):
+                line = f.readline()
+                line_num += 1
+                if debiased_found:
+                    professions_accuracies_debiased = ast.literal_eval(line)
+                    debiased_found = False
+                elif non_debiased_found:
+                    professions_accuracies_non_debiased = ast.literal_eval(line)
                     non_debiased_found =False
             line = f.readline()
             line_num+=1
-    return result
+    return result,professions_accuracies_debiased,professions_accuracies_non_debiased
 
 def get_all_results(files_dict):
 
     results = {}
+    professions_results = {}
     for language in LANGUAGES:
         results[language] = {}
         for debias_method in DEBIAS_METHODS:
             results[language][debias_method] = {}
             results[language][debias_method]["translation"] = get_translation_results(result_files[language][debias_method]["translation"])
-            results[language][debias_method]["gender"] = get_gender_results(result_files[language][debias_method]["gender"])
+            results[language][debias_method]["gender"],professions_accuracies_debiased,professions_accuracies_non_debiased = get_gender_results(result_files[language][debias_method]["gender"])
+            for p in professions_accuracies_debiased.keys():
+                if p not in professions_results:
+                    professions_results[p] = {}
+                if language not in professions_results[p]:
+                    professions_results[p][language] = {}
+
+                professions_results[p][language][debias_method]=professions_accuracies_debiased[p]-professions_accuracies_non_debiased[p]
     print(json.dumps(results, sort_keys=True, indent=4))
     methods_results = []
     for debias_method in DEBIAS_METHODS:
@@ -72,8 +90,26 @@ def get_all_results(files_dict):
         methods_results+=[method_results]
     results =np.around([orig_results, methods_results[0], methods_results[1]], 2)
     results[results==-math.inf] = None
-    return results
 
+    professions_results_table = {}
+    for p in professions_results.keys():
+        professions_results_table[p] = [professions_results[p][language][debias_method]for language in LANGUAGES for debias_method in DEBIAS_METHODS]
+
+    return results,professions_results_table
+
+def write_professions_results_to_csv(professions_results, model):
+    headers = [None, "Russian", None, "German",None, "Hebrew", None]
+    sub_headers = [None]+["Bolukbasy", "Null It Out"]*3
+    index = [[p] for p in professions_results.keys()]
+    data = np.append(index, list(professions_results.values()), axis=1)
+    now = datetime.now()
+    dt_string = now.strftime("%d-%m-%Y_%H-%M-%S")
+    Path(DEBIAS_FILES_HOME+"results").mkdir(parents=True, exist_ok=True)
+    with open(OUTPUTS_HOME+"results/professions_results_"+model+"_"+dt_string+".csv", 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(headers)
+        writer.writerow(sub_headers)
+        writer.writerows(data)
 def write_results_to_csv(results, model):
     headers = [None, "Russian", None, None, None, "German",None, None, None,  "Hebrew", None, None, None]
     sub_headers = [None]+["Bleu", "delta Bleu", "delta s", "delta delta s"]*3
@@ -119,8 +155,8 @@ if __name__ == '__main__':
             result_files[language][debias_method] = {}
             result_files[language][debias_method]["translation"] = OUTPUTS_HOME + "en-" + language + "/debias/translation_evaluation_"+ language + "_"+str(debias_method)+"_"+model+".txt"
             result_files[language][debias_method]["gender"] = OUTPUTS_HOME + "en-" + language + "/debias/gender_evaluation_" + language + "_"+str(debias_method)+"_"+model+".txt"
-    res = get_all_results(result_files)
+    res,professions_results_table = get_all_results(result_files)
     for i in res:
         print(i)
-    # write_results_to_table(res)
     write_results_to_csv(res, model)
+    write_professions_results_to_csv(professions_results_table, model)

@@ -132,10 +132,10 @@ fi
 
 if [ "$model" == "0" ]; then
   echo "running nematus flows"
-  sh evaluate_gender_bias.sh -l ${language} -d ${debias_method} ${preprocess} ${translate} ${debias_encoder} ${begining_decoder_debias} ${end_decoder_debias} -w ${words_to_debias}
-  sh evaluate_translation.sh -l ${language} -d ${debias_method} ${translate} ${debias_encoder} ${begining_decoder_debias} ${end_decoder_debias} -w ${words_to_debias}
+  sh evaluate_gender_bias.sh -l ${language} -d ${debias_method} ${preprocess} ${translate} ${debias_encoder} ${beginning_decoder_debias} ${end_decoder_debias} -w ${words_to_debias}
+  sh evaluate_translation.sh -l ${language} -d ${debias_method} ${translate} ${debias_encoder} ${beginning_decoder_debias} ${end_decoder_debias} -w ${words_to_debias}
 else
     echo "running easyNMT flows"
-  sh evaluate_gender_bias_easynmt.sh -l ${language} -d ${debias_method} ${preprocess} ${translate} ${debias_encoder} ${begining_decoder_debias} ${end_decoder_debias} -w ${words_to_debias}
-  sh evaluate_translation_easynmt.sh -l ${language} -d ${debias_method} ${translate} ${debias_encoder} ${begining_decoder_debias} ${end_decoder_debias} -w ${words_to_debias}
+  sh evaluate_gender_bias_easynmt.sh -l ${language} -d ${debias_method} ${preprocess} ${translate} ${debias_encoder} ${beginning_decoder_debias} ${end_decoder_debias} -w ${words_to_debias}
+  sh evaluate_translation_easynmt.sh -l ${language} -d ${debias_method} ${translate} ${debias_encoder} ${beginning_decoder_debias} ${end_decoder_debias} -w ${words_to_debias}
 fi
