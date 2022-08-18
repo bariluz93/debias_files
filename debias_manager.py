@@ -32,7 +32,7 @@ sys.path.append("../../debias_files")  # Adds higher directory to python modules
 
 from consts import get_debias_files_from_config, EMBEDDING_SIZE, DEFINITIONAL_FILE, PROFESSIONS_FILE, \
     GENDER_SPECIFIC_FILE, EQUALIZE_FILE, get_basic_configurations, DebiasMethod, get_basic_configurations, \
-    TranslationModelsEnum, get_evaluate_gender_files, WordsToDebias
+    TranslationModelsEnum, get_evaluate_gender_files, WordsToDebias, ENGLISH_VOCAB, param_dict, LANGUAGE_OPPOSITE_STR_MAP
 
 sys.path.append("../..")  # Adds higher directory to python modules path.
 from nullspace_projection.src.debias import load_word_vectors, project_on_gender_subspaces, get_vectors, \
@@ -445,6 +445,7 @@ class DebiasINLPManager(DebiasManager):
 
         return gender_direction
 
+
     def debias_inlp_preparation(self):
         """
         prepares the classifier model, and the embeddings with their classification as male, female and neutral
@@ -455,17 +456,24 @@ class DebiasINLPManager(DebiasManager):
         vecs: the embeddings
         """
         self.model, vecs, words = load_word_vectors(fname=self.EMBEDDING_DEBIASWE_FILE)
+
+        if self.debias_target_language:
+            lang_model,lang_vecs,lang_words = load_word_vectors(fname=param_dict[LANGUAGE_OPPOSITE_STR_MAP[self.target_lang]]["VOCAB_INLP"])
+        else:
+            lang_model,lang_vecs,lang_words = load_word_vectors(fname=param_dict[LANGUAGE_OPPOSITE_STR_MAP[self.target_lang]]["VOCAB_INLP_EN"])
+
+
         num_vectors_per_class = 7500
         gender_direction = self.get_gender_direction()
 
         gender_unit_vec = gender_direction / np.linalg.norm(gender_direction)
         masc_words_and_scores, fem_words_and_scores, neut_words_and_scores = project_on_gender_subspaces(
-            gender_direction, self.model, n=num_vectors_per_class)
+            gender_direction, lang_model, n=num_vectors_per_class)
         masc_words, masc_scores = list(zip(*masc_words_and_scores))
         neut_words, neut_scores = list(zip(*neut_words_and_scores))
         fem_words, fem_scores = list(zip(*fem_words_and_scores))
-        masc_vecs, fem_vecs = get_vectors(masc_words, self.model), get_vectors(fem_words, self.model)
-        neut_vecs = get_vectors(neut_words, self.model)
+        masc_vecs, fem_vecs = get_vectors(masc_words, lang_model), get_vectors(fem_words, lang_model)
+        neut_vecs = get_vectors(neut_words, lang_model)
 
         n = min(3000, num_vectors_per_class)
         all_significantly_biased_words = masc_words[:n] + fem_words[:n]

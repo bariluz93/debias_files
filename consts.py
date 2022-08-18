@@ -21,6 +21,7 @@ class TranslationModelsEnum(Enum):
     EASY_NMT = 1
 LANGUAGE_STR_TO_INT_MAP = {'ru': 0,'de':1,'he':2, 'es':3}
 LANGUAGE_STR_MAP = {Language.RUSSIAN: "ru", Language.GERMAN: "de", Language.HEBREW: "he", Language.SPANISH: "es"}
+LANGUAGE_OPPOSITE_STR_MAP = {"ru": Language.RUSSIAN , "de": Language.GERMAN, "he":Language.HEBREW, "es":Language.SPANISH}
 
 
 class DebiasMethod(Enum):
@@ -37,6 +38,7 @@ DEBIAS_FILES_HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/debias_files/"
 MT_GENDER_HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/mt_gender/"
 DATA_HOME = "/cs/snapless/gabis/bareluz/data/"
 OUTPUTS_HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/debias_outputs/"
+ENGLISH_VOCAB = '/cs/snapless/gabis/bareluz/en_vocab_merged.txt'
 param_dict = {
     Language.RUSSIAN:
         {
@@ -44,6 +46,10 @@ param_dict = {
             "ENG_DICT_FILE": DATA_HOME + "en_ru_30.11.20//train.clean.unesc.tok.tc.bpe.en.json",
             "BLEU_GOLD_DATA": DATA_HOME + "en_ru_30.11.20/newstest2019-enru.unesc.tok.tc.bpe.ru",
             "BLEU_GOLD_DATA_NON_TOKENIZED": DATA_HOME + "en_ru_30.11.20/newstest2019-enru.ru",
+            "VOCAB": DATA_HOME + "en_ru_30.11.20/ru_vocab.txt",
+            "VOCAB_INLP": DATA_HOME + "en_ru_30.11.20/ru_vocab_inlp.txt",
+            "VOCAB_INLP_EN": DATA_HOME + "en_ru_30.11.20/en_vocab_inlp.txt",
+            "VOCAB_EN": DATA_HOME + "en_ru_30.11.20/en_vocab.txt",
 
         },
     Language.GERMAN:
@@ -52,6 +58,11 @@ param_dict = {
             "ENG_DICT_FILE": DATA_HOME + "en_de_5.8/train.clean.unesc.tok.tc.bpe.en.json",
             "BLEU_GOLD_DATA": DATA_HOME + "en_de_5.8/newstest2012.unesc.tok.tc.bpe.de",
             "BLEU_GOLD_DATA_NON_TOKENIZED": DATA_HOME + "en_de_5.8/newstest2012.de",
+            "VOCAB": DATA_HOME + "en_de_5.8/de_vocab.txt",
+            "VOCAB_INLP": DATA_HOME + "en_de_5.8/de_vocab_inlp.txt",
+            "VOCAB_INLP_EN": DATA_HOME + "en_de_5.8/en_vocab_inlp.txt",
+            "VOCAB_EN": DATA_HOME + "en_de_5.8/en_vocab.txt",
+
         },
     Language.HEBREW:
         {
@@ -59,6 +70,11 @@ param_dict = {
             "ENG_DICT_FILE": DATA_HOME + "en_he_20.07.21//train.clean.unesc.tok.tc.bpe.en.json",
             "BLEU_GOLD_DATA": DATA_HOME + "en_he_20.07.21//dev.unesc.tok.bpe.he",
             "BLEU_GOLD_DATA_NON_TOKENIZED": DATA_HOME + "en_he_20.07.21//dev.he",
+            "VOCAB": DATA_HOME + "en_he_20.07.21/he_vocab.txt",
+            "VOCAB_INLP": DATA_HOME + "en_he_20.07.21/he_vocab_inlp.txt",
+            "VOCAB_INLP_EN": DATA_HOME + "en_he_20.07.21/en_vocab_inlp.txt",
+            "VOCAB_EN": DATA_HOME + "en_he_20.07.21/en_vocab.txt",
+
         },
     Language.SPANISH:
         {
@@ -89,6 +105,7 @@ def get_basic_configurations(config_str):
     END_DECODER_DEBIAS=config["END_DECODER_DEBIAS"]
     WORDS_TO_DEBIAS=config["WORDS_TO_DEBIAS"]
     return USE_DEBIASED, LANGUAGE, COLLECT_EMBEDDING_TABLE, DEBIAS_METHOD, TRANSLATION_MODEL,DEBIAS_ENCODER,BEGINNING_DECODER_DEBIAS,END_DECODER_DEBIAS,WORDS_TO_DEBIAS
+
 
 
 def get_debias_files_from_config(config_str):
