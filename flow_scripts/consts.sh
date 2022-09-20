@@ -26,6 +26,8 @@ data_path=/cs/snapless/gabis/bareluz/data
 #de_data = DATA_HOME + "en_de_5.8/newstest2012.en"
 #he_data = DATA_HOME + "en_he_20.07.21/dev.en"
 
+### correctness checks
+
 case ${model} in
 	0)
 		export model_str=NEMATUS
@@ -37,6 +39,7 @@ case ${model} in
 		echo "invalid model given. the possible models are 0 for Nematus or 1 to easyNMT"
 		;;
 esac
+### done correctness checks
 
 case ${dst_language} in
 	ru)

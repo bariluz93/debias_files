@@ -28,10 +28,14 @@ if __name__ == '__main__':
     parser.add_argument(
             '-c', '--config_str', type=str, required=True,
             help="a config dictionary str that conatains: \n"
-                 "debiased= run translate on the debiased dictionary or not\n"
-                 "language= the language to translate to from english. RUSSIAN = 0, GERMAN = 1, HEBREW = 2\n"
-                 "collect_embedding_table= run translate to collect embedding table or not\n"
-                 "print_line_nums= whether to print line numbers to output file in translate")
+             "USE_DEBIASED= run translate on the debiased dictionary or not\n"
+             "LANGUAGE= the language to translate to from english. RUSSIAN = 0, GERMAN = 1, HEBREW = 2\n"
+             "DEBIAS_METHOD= the debias method. BOLUKBASY = 0 NULL_IT_OUT = 1\n"
+             "TRANSLATION_MODEL= the translation model. Nematus=0, EasyNMT=1\n"
+             "DEBIAS_ENCODER= whether to debias the encoder\n"
+             "BEGINNING_DECODER_DEBIAS= whether to debias the inputs of the decoder\n"
+             "END_DECODER_DEBIAS= whether to debias the outputs of the decoder\n"""
+             "WORDS_TO_DEBIAS= set of words to debias. ALL_VOCAB = 0, ONE_TOKEN_PROFESSIONS = 1, ALL_PROFESSIONS = 2 \n")
     args = parser.parse_args()
     ANTI_TRANSLATED_DEBIASED, ANTI_TRANSLATED_NON_DEBIASED, DEBIASED_EVAL, \
     NON_DEBIASED_EVAL, EN_ANTI_MT_GENDER, EN_NEUTRAL_MT_GENDER = get_evaluate_gender_files(args.config_str)

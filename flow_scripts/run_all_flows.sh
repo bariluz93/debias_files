@@ -92,7 +92,8 @@ if none of debias_encoder, beginning_decoder_debias, end_decoder_debias is selec
       exit 1;;
   esac
 done
-echo "preprocess ${preprocess} translate $translate debias_encoder $debias_encoder beginning_decoder_debias $beginning_decoder_debias end_decoder_debias $end_decoder_debias words_to_debias $words_to_debias model $model"
+
+### correctness checks
 
 if [ "$model" == "" ]; then
   echo missing argument model
@@ -122,6 +123,8 @@ if [ "$model" == '1' ]; then
     exit 1
   fi
 fi
+
+### done correctness checks
 
 scripts_dir=`pwd`
 source ${scripts_dir}/consts.sh ${language} ${debias_method} ${model}

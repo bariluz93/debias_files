@@ -79,9 +79,6 @@ if words_to_debias is not given, ONE_TOKEN_PROFESSIONS = 1 is selected"
 done
 
 scripts_dir=`pwd`
-source ${scripts_dir}/consts.sh ${language} ${debias_method} 0
-
-scripts_dir=`pwd`
 source ${scripts_dir}/consts.sh ${language} ${debias_method} 1
 
 
@@ -94,7 +91,6 @@ config_debiased="{'USE_DEBIASED': 1, 'LANGUAGE': ${language_num}, 'DEBIAS_METHOD
 config_non_debiased="{'USE_DEBIASED': 0, 'LANGUAGE': ${language_num}, 'DEBIAS_METHOD': ${debias_method}, 'TRANSLATION_MODEL': 1, 'DEBIAS_ENCODER': ${debias_encoder}, 'BEGINNING_DECODER_DEBIAS': ${beginning_decoder_debias}, 'END_DECODER_DEBIAS': ${end_decoder_debias}, 'WORDS_TO_DEBIAS': ${words_to_debias}}"
 
 if [ $translate = true ]; then
-  echo "python ${debias_files_dir}/translate_easynmt.py -i ${input_path} -o ${outputh_path_debiased} -c ${config_debiased}"
   echo "#################### translate anti debias ####################"
   python ${debias_files_dir}/translate_easynmt.py \
        -i "$input_path" \

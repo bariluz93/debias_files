@@ -32,7 +32,7 @@ sys.path.append("../../debias_files")  # Adds higher directory to python modules
 
 from consts import get_debias_files_from_config, EMBEDDING_SIZE, DEFINITIONAL_FILE, PROFESSIONS_FILE, \
     GENDER_SPECIFIC_FILE, EQUALIZE_FILE, get_basic_configurations, DebiasMethod, get_basic_configurations, \
-    TranslationModelsEnum, get_evaluate_gender_files, WordsToDebias, ENGLISH_VOCAB, param_dict, LANGUAGE_OPPOSITE_STR_MAP
+    TranslationModelsEnum, get_evaluate_gender_files, WordsToDebias, ENGLISH_VOCAB, param_dict, LANGUAGE_OPPOSITE_STR_MAP, lang_to_gender_specific_words_map,PROJECT_HOME
 
 sys.path.append("../..")  # Adds higher directory to python modules path.
 from nullspace_projection.src.debias import load_word_vectors, project_on_gender_subspaces, get_vectors, \
@@ -44,41 +44,47 @@ np.set_printoptions(suppress=True)
 
 class DebiasManager():
 
-    def __init__(self, consts_config_str, non_debiased_embeddings=None, tokenizer=None, debias_decoder=False, debias_target_language=False):
+    def __init__(self, consts_config_str, non_debiased_embeddings=None, tokenizer=None, debias_target_language=False):
+        ### definitions
         self.debias_target_language = debias_target_language
-        self.debias_decoder = debias_decoder
         self.consts_config_str = consts_config_str
         self.DICT_SIZE, self.ENG_DICT_FILE, self.OUTPUT_TRANSLATE_FILE, self.EMBEDDING_TABLE_FILE, \
         self.EMBEDDING_DEBIASWE_FILE, self.DEBIASED_EMBEDDING, self.SANITY_CHECK_FILE = \
             get_debias_files_from_config(consts_config_str)
 
-        _, _, _, _, self.TRANSLATION_MODEL, self.DEBIAS_ENCODER, _, _, self.WORDS_TO_DEBIAS = get_basic_configurations(
+        _, _, _, _, self.TRANSLATION_MODEL, self.DEBIAS_ENCODER, self.BEGINNING_DECODER_DEBIAS,self.END_DECODER_DEBIAS, self.WORDS_TO_DEBIAS = get_basic_configurations(
             consts_config_str)
         _, _, _, _, _, self.EN_NEUTRAL_MT_GENDER = get_evaluate_gender_files(consts_config_str)
+
+        ### prepare professions to debias
         self.professions = self.get_all_professions()
-        with open('/cs/usr/bareluz/gabi_labs/nematus_clean/debias_files/hebrew_professions_filtered') as f:
-            self.hebrew_professions = f.readlines()
-            self.hebrew_professions = [p.strip() for p in self.hebrew_professions]
-        with open('/cs/usr/bareluz/gabi_labs/nematus_clean/debias_files/german_professions_filtered') as f:
-            self.german_professions = f.readlines()
-            self.german_professions = [p.strip() for p in self.german_professions]
+        with open(PROJECT_HOME+'debias_files/hebrew_professions_filtered') as f:
+            self.hebrew_professions = [p.strip() for p in f.readlines()]
+        with open(PROJECT_HOME+'debias_files/german_professions_filtered') as f:
+            self.german_professions = [p.strip() for p in f.readlines()]
+
+        # happens only on sanity check and nematus
         if tokenizer is None:
             with open(self.ENG_DICT_FILE, 'r') as dict_file:
                 self.dict = json.load(dict_file)
+        # happens the rest of the times
         else:
             self.target_lang = tokenizer.target_lang
             self.dict = tokenizer.get_vocab()
             self.professions = self._tokenize_professions(tokenizer,self.professions)
             self.hebrew_professions = self._tokenize_professions(tokenizer,self.hebrew_professions)
             self.german_professions = self._tokenize_professions(tokenizer,self.german_professions)
+
         self.tokenizer = tokenizer
+        ### define embedding table to debias
+        # in case non_debiased_embeddings is not given (happens only in NEMAUTS) it opens the embeddings extracted from nematus model
         if non_debiased_embeddings is None:
             self.non_debiased_embeddings = self.get_non_debiased_embedding_table()
         else:
             self.non_debiased_embeddings = non_debiased_embeddings
 
     @staticmethod
-    def get_manager_instance(consts_config_str, non_debiased_embeddings=None, tokenizer=None,debias_decoder=False,
+    def get_manager_instance(consts_config_str, non_debiased_embeddings=None, tokenizer=None,
                              debias_target_language=False):
         """
         gets a configuration dictionary of the current run, and extracts the debias method from it.
@@ -88,9 +94,9 @@ class DebiasManager():
         """
         _, _, _, DEBIAS_METHOD, _, _, _, _, _ = get_basic_configurations(consts_config_str)
         if DebiasMethod(DEBIAS_METHOD) == DebiasMethod.BOLUKBASY:
-            return DebiasBlukbasyManager(consts_config_str, non_debiased_embeddings, tokenizer, debias_decoder, debias_target_language)
+            return DebiasBlukbasyManager(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         elif DebiasMethod(DEBIAS_METHOD) == DebiasMethod.NULL_IT_OUT:
-            return DebiasINLPManager(consts_config_str, non_debiased_embeddings, tokenizer, debias_decoder, debias_target_language)
+            return DebiasINLPManager(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         else:
             raise Exception("the debias method is incorrect")
 
@@ -119,7 +125,7 @@ class DebiasManager():
     def _tokenize_professions(self,tokenizer,professions):
         tokenized_professions = []
         # if we debias the decoder we use decoder's tokenizer
-        if self.debias_decoder:
+        if self.debias_target_language:
             with tokenizer.as_target_tokenizer():
                 # option 1 take only professions that are 1 token
                 if self.WORDS_TO_DEBIAS == WordsToDebias.ONE_TOKEN_PROFESSIONS.value:
@@ -388,17 +394,16 @@ class DebiasManager():
         raise NotImplementedError()
 
     def save(self, debiased_embeddings):
+        ### used only in Nematus
         with open(self.DEBIASED_EMBEDDING, "w") as f:
             # eng_dictionary = json.load(dict_file)
             for w, i in self.dict.items():
                 f.write(w + " " + ' '.join(map(str, debiased_embeddings[i, :])) + "\n")
-        # with open(filename, "w") as f:
-        #     f.write("\n".join([w+" " + " ".join([str(x) for x in v]) for w, v in zip(self.words, self.vecs)]))
         print("Wrote debiased embeddings to", self.DEBIASED_EMBEDDING)
 
 
 class DebiasINLPManager(DebiasManager):
-    def __init__(self, consts_config_str, non_debiased_embeddings=None, tokenizer=None, debias_decoder=False, debias_target_language=False):
+    def __init__(self, consts_config_str, non_debiased_embeddings=None, tokenizer=None, debias_target_language=False):
         super().__init__(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         self.prepare_data_to_debias()
         self.by_pca = False
@@ -438,11 +443,20 @@ class DebiasINLPManager(DebiasManager):
 
         else:
             if self.tokenizer is not None:
-                gender_direction = self.model[self.tokenizer.tokenize("he")[0]] - self.model[
-                    self.tokenizer.tokenize("she")[0]]
+                if self.debias_target_language:
+                    with self.tokenizer.as_target_tokenizer():
+                        he,she =(lang_to_gender_specific_words_map[self.target_lang])[0], \
+                                (lang_to_gender_specific_words_map[self.target_lang])[1]
+                        gender_direction = self.tokenizer(he)['input_ids'][0] - self.tokenizer(she)['input_ids'][0]
+                else:
+                    he, she = (lang_to_gender_specific_words_map['en'])[0], \
+                              (lang_to_gender_specific_words_map['en'])[1]
+                    gender_direction = self.model[self.tokenizer.tokenize(he)[0]] - \
+                                       self.model[self.tokenizer.tokenize(she)[0]]
+
+
             else:
                 gender_direction = self.model["he"] - self.model["she"]
-
         return gender_direction
 
 
@@ -571,13 +585,14 @@ class DebiasINLPManager(DebiasManager):
             debiased_embeddings = (P.dot(vecs.T)).T
         else:
             debiased_embeddings[professions_indices] = (P.dot(debiased_embeddings[professions_indices].T)).T
+        ### save embeddings to file, used only for Nematus
         self.save(debiased_embeddings)
         return debiased_embeddings
 
 
 class DebiasBlukbasyManager(DebiasManager):
-    def __init__(self, consts_config_str, non_debiased_embeddings=None, tokenizer=None,debias_decoder=False, debias_target_language=False):
-        super().__init__(consts_config_str, non_debiased_embeddings, tokenizer, debias_decoder, debias_target_language)
+    def __init__(self, consts_config_str, non_debiased_embeddings=None, tokenizer=None, debias_target_language=False):
+        super().__init__(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         # self.E = None
         self.prepare_data_to_debias()
         self.E = we.WordEmbedding(self.EMBEDDING_DEBIASWE_FILE)
@@ -647,6 +662,7 @@ class DebiasBlukbasyManager(DebiasManager):
             professions = self.professions
         debias(self.E, gender_specific_words, defs, equalize_pairs, professions, self.WORDS_TO_DEBIAS)
 
+        ### save embeddings to file, used only for Nematus
         print("Saving to file...")
         self.save(self.E.vecs)
         return self.E.vecs

@@ -8,7 +8,7 @@ import ast
 #         f.write(j)
 from enum import Enum
 from datetime import datetime
-
+lang_to_gender_specific_words_map = {'ru':['он','она'],'de':['er','sie'],'he':['הוא','היא'],'en':['he','she']}
 class Language(Enum):
     RUSSIAN = 0
     GERMAN = 1

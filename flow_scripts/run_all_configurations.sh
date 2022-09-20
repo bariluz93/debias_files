@@ -78,6 +78,7 @@ if words_to_debias is not given, ONE_TOKEN_PROFESSIONS = 1 is selected"
       exit 1;;
   esac
 done
+### correctness checks
 
 #check model is given
 if [ "$model" == "" ]; then
@@ -114,6 +115,8 @@ if [ "$model" == '1' ]; then
     exit 1
   fi
 fi
+### done correctness checks
+
 scripts_dir=`pwd`
 source ${scripts_dir}/consts.sh 0 0 ${model}
 

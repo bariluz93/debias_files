@@ -31,6 +31,12 @@ if __name__ == '__main__':
              "USE_DEBIASED= run translate on the debiased dictionary or not\n"
              "LANGUAGE= the language to translate to from english. RUSSIAN = 0, GERMAN = 1, HEBREW = 2\n"
              "DEBIAS_METHOD= the debias method. BOLUKBASY = 0 NULL_IT_OUT = 1\n"
+             "TRANSLATION_MODEL= the translation model. Nematus=0, EasyNMT=1\n"
+             "DEBIAS_ENCODER= whether to debias the encoder\n"
+             "BEGINNING_DECODER_DEBIAS= whether to debias the inputs of the decoder\n"
+             "END_DECODER_DEBIAS= whether to debias the outputs of the decoder\n"""
+             "WORDS_TO_DEBIAS= set of words to debias. ALL_VOCAB = 0, ONE_TOKEN_PROFESSIONS = 1, ALL_PROFESSIONS = 2 \n"
+
     )
     args = parser.parse_args()
     translate(args.input, args.output, args.config_str)
