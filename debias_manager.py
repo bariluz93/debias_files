@@ -447,7 +447,7 @@ class DebiasINLPManager(DebiasManager):
                     with self.tokenizer.as_target_tokenizer():
                         he,she =(lang_to_gender_specific_words_map[self.target_lang])[0], \
                                 (lang_to_gender_specific_words_map[self.target_lang])[1]
-                        gender_direction = self.tokenizer(he)['input_ids'][0] - self.tokenizer(she)['input_ids'][0]
+                        gender_direction = self.model[self.tokenizer(he)['input_ids'][0]] - self.model[self.tokenizer(she)['input_ids'][0]]
                 else:
                     he, she = (lang_to_gender_specific_words_map['en'])[0], \
                               (lang_to_gender_specific_words_map['en'])[1]
@@ -469,10 +469,13 @@ class DebiasINLPManager(DebiasManager):
         all_significantly_biased_vecs, all_significantly_biased_labels: a set of significally biased embeddings
         vecs: the embeddings
         """
+        # load vectors of the entire dictionary
         self.model, vecs, words = load_word_vectors(fname=self.EMBEDDING_DEBIASWE_FILE)
 
+        # load vectors of the target language from the target language vocabulary
         if self.debias_target_language:
             lang_model,lang_vecs,lang_words = load_word_vectors(fname=param_dict[LANGUAGE_OPPOSITE_STR_MAP[self.target_lang]]["VOCAB_INLP"])
+        # load vectors of English language from the source language vocabulary
         else:
             lang_model,lang_vecs,lang_words = load_word_vectors(fname=param_dict[LANGUAGE_OPPOSITE_STR_MAP[self.target_lang]]["VOCAB_INLP_EN"])
 
@@ -540,7 +543,6 @@ class DebiasINLPManager(DebiasManager):
         debiases the embedding table according to the chosen method
         :return: the debiased embedding table
         """
-        # self.load_and_prepare_embedding_table()
         X_dev, Y_dev, X_train, Y_train, X_test, Y_test, all_significantly_biased_vecs, \
         all_significantly_biased_labels, vecs, words = self.debias_inlp_preparation()
         gender_clf = LinearSVC
@@ -556,7 +558,7 @@ class DebiasINLPManager(DebiasManager):
         # params = {}
         n = 35
         min_acc = 0
-        # min_acc = 0.5#todo change back
+        # min_acc = 0.5
         is_autoregressive = True
         dropout_rate = 0
         if self.TRANSLATION_MODEL == TranslationModelsEnum.NEMATUS.value:
