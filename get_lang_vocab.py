@@ -1,4 +1,4 @@
-from consts import Language, param_dict, DATA_HOME, ENGLISH_VOCAB,LANGUAGE_STR_TO_INT_MAP, get_debias_files_from_config
+from consts import Language, param_dict, DATA_HOME,ANTI_DATA_HOME, ENGLISH_VOCAB,LANGUAGE_STR_TO_INT_MAP, get_debias_files_from_config
 from transformers import MarianTokenizer
 
 tokenizer_de = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-en-de")
@@ -15,10 +15,10 @@ config_he = "{'USE_DEBIASED': 0, 'LANGUAGE': " + str(LANGUAGE_STR_TO_INT_MAP["he
             ", 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': 0, 'TRANSLATION_MODEL': 1, " \
             "'DEBIAS_ENCODER': 0, 'BEGINNING_DECODER_DEBIAS': 0, 'END_DECODER_DEBIAS': 0, 'WORDS_TO_DEBIAS': 0}"
 
-en_dataset_paths = ['/cs/snapless/gabis/bareluz/data/en_ru_30.11.20/newstest2019-enru.en',
-                    '/cs/snapless/gabis/bareluz/data/en_de_5.8/newstest2012.en',
-                    '/cs/snapless/gabis/bareluz/data/en_he_20.07.21/dev.en',
-                    '/cs/snapless/gabis/bareluz/anti_data/anti.en']
+en_dataset_paths = [DATA_HOME+'en_ru_30.11.20/newstest2019-enru.en',
+                    DATA_HOME+'en_de_5.8/newstest2012.en',
+                    DATA_HOME+'en_he_20.07.21/dev.en',
+                    ANTI_DATA_HOME+'anti.en']
 
 _, _, _, _, EMBEDDING_DEBIASWE_FILE_RU, _, _=get_debias_files_from_config(config_ru)
 _, _, _, _, EMBEDDING_DEBIASWE_FILE_DE, _, _=get_debias_files_from_config(config_de)

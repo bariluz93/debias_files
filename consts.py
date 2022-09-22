@@ -1,11 +1,14 @@
 import json
 import ast
-#
-# if __name__ == '__main__':
-#     CONSTS_CONFIG = {"USE_DEBIASED":0, "LANGUAGE":0, "COLLECT_EMBEDDING_TABLE":0}
-#     j =json.dumps(CONSTS_CONFIG)
-#     with open("/cs/labs/gabis/bareluz/nematus_clean/nematus/consts_config.json","w") as f:
-#         f.write(j)
+
+PROJECT_HOME = "/cs/labs/gabis/bareluz/nematus_clean/"
+DEBIAS_FILES_HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/debias_files/"
+MT_GENDER_HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/mt_gender/"
+DATA_HOME = "/cs/snapless/gabis/bareluz/debias_nmt_data/data/"
+ANTI_DATA_HOME = "/cs/snapless/gabis/bareluz/debias_nmt_data/anti_data/"
+OUTPUTS_HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/debias_outputs/"
+ENGLISH_VOCAB = '/cs/snapless/gabis/bareluz/debias_nmt_data/en_vocab_merged.txt'
+
 from enum import Enum
 from datetime import datetime
 lang_to_gender_specific_words_map = {'ru':['он','она'],'de':['er','sie'],'he':['הוא','היא'],'en':['he','she']}
@@ -33,12 +36,7 @@ class WordsToDebias(Enum):
     ALL_PROFESSIONS = 2
 
 EMBEDDING_SIZE = 256
-PROJECT_HOME = "/cs/labs/gabis/bareluz/nematus_clean/"
-DEBIAS_FILES_HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/debias_files/"
-MT_GENDER_HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/mt_gender/"
-DATA_HOME = "/cs/snapless/gabis/bareluz/data/"
-OUTPUTS_HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/debias_outputs/"
-ENGLISH_VOCAB = '/cs/snapless/gabis/bareluz/en_vocab_merged.txt'
+
 param_dict = {
     Language.RUSSIAN:
         {

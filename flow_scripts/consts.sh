@@ -16,11 +16,11 @@ export PYTHONPATH=${PYTHONPATH}:${project_dir}
 export nematus_dir=/cs/usr/bareluz/gabi_labs/nematus_clean/nematus
 export debias_files_dir=/cs/usr/bareluz/gabi_labs/nematus_clean/debias_files
 export debias_outputs_dir=/cs/usr/bareluz/gabi_labs/nematus_clean/debias_outputs
-export snapless_data_dir=/cs/snapless/gabis/bareluz
+export snapless_data_dir=/cs/snapless/gabis/bareluz/debias_nmt_data
 export language_dir=${src_language}-${dst_language}
 export mt_gender_dir=/cs/usr/bareluz/gabi_labs/nematus_clean/mt_gender
 
-data_path=/cs/snapless/gabis/bareluz/data
+data_path=/cs/snapless/gabis/bareluz/debias_nmt_data/data
 
 #ru_data = DATA_HOME + "en_ru_30.11.20/newstest2019-enru.en"
 #de_data = DATA_HOME + "en_de_5.8/newstest2012.en"
