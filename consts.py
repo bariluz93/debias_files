@@ -28,8 +28,8 @@ LANGUAGE_OPPOSITE_STR_MAP = {"ru": Language.RUSSIAN , "de": Language.GERMAN, "he
 
 
 class DebiasMethod(Enum):
-    BOLUKBASY = 0
-    NULL_IT_OUT = 1
+    HARD_DEBIAS = 0
+    INLP = 1
 class WordsToDebias(Enum):
     ALL_VOCAB = 0
     ONE_TOKEN_PROFESSIONS = 1
