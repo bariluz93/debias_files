@@ -3,6 +3,10 @@ from os import listdir
 from os.path import isfile, join
 import shutil
 import argparse
+from consts import TranslationModels
+
+HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/"
+
 
 def cleanup(paths,files_to_ignore):
     for path in paths:
@@ -22,36 +26,27 @@ if __name__ == '__main__':
         '-t', '--clean_translation_files', action='store_true',
         help="weather should clean the translation files")
     args = parser.parse_args()
-    # / cs / labs / gabis / bareluz / nematus_clean / nematus / en - ru / output / debiased_anti_0.out.tmp
-    # / cs / labs / gabis / bareluz / nematus_clean / nematus / en - ru / output / non_debiased_anti_0.out.tmp
-    # / cs / labs / gabis / bareluz / nematus_clean / nematus / en - ru / output / debiased_0.out.tmp
-    # / cs / labs / gabis / bareluz / nematus_clean / nematus / en - ru / output / non_debiased_0.out.tmp
-    # / cs / labs / gabis / bareluz / nematus_clean / nematus / en - ru / output / debiased_anti_1.out.tmp
-    # / cs / labs / gabis / bareluz / nematus_clean / nematus / en - ru / output / non_debiased_anti_1.out.tmp
-    # / cs / labs / gabis / bareluz / nematus_clean / nematus / en - ru / output / debiased_1.out.tmp
-    # / cs / labs / gabis / bareluz / nematus_clean / nematus / en - ru / output / non_debiased_1.out.tmp
-    languages = ["de","ru","he"]
+    languages = ["de","ru","he","es"]
     for language in languages:
         files_to_ignore = []
         if not args.clean_embedding_table:
             files_to_ignore.append("output_translate_" + language + ".txt")
 
         if not args.clean_translation_files:
-            files_to_ignore+=["debiased_anti_0.out.tmp",
-                              "non_debiased_anti_0.out.tmp",
-                              "debiased_0.out.tmp",
-                              "non_debiased_0.out.tmp",
-                              "debiased_anti_1.out.tmp",
-                              "non_debiased_anti_1.out.tmp",
-                              "debiased_1.out.tmp",
-                              "non_debiased_1.out.tmp",
-                              ]
+            for debias_method in [0,1]:
+                for model in TranslationModels:
+                    files_to_ignore+=["debiased_anti_"+str(debias_method)+"_"+model+".out.tmp",
+                                      "non_debiased_anti_"+str(debias_method)+"_"+model+".out.tmp",
+                                      "debiased_"+str(debias_method)+"_"+model+".out.tmp",
+                                      "non_debiased_"+str(debias_method)+"_"+model+".out.tmp"]
 
-        cleanup(["/cs/usr/bareluz/gabi_labs/nematus_clean/debias_outputs/en-"+language +"/debias",
-                 "/cs/usr/bareluz/gabi_labs/nematus_clean/debias_outputs/en-"+language +"/evaluate",
-                 "/cs/usr/bareluz/gabi_labs/nematus_clean/debias_outputs/en-"+language +"/output",],
+
+        cleanup([HOME + "debias_outputs/en-" + language + "/debias",
+                 HOME + "debias_outputs/en-" + language +"/evaluate",
+                 HOME + "debias_outputs/en-" + language +"/output", ],
                 files_to_ignore)
-    cleanup(["/cs/usr/bareluz/gabi_labs/nematus_clean/mt_gender/translations/nematus",
-             "/cs/usr/bareluz/gabi_labs/nematus_clean/mt_gender/data/aggregates"],
-            ["en_anti.txt"])
+    cleanup([HOME + "mt_gender/translations/NEMATUS",
+             HOME + "mt_gender/translations/EASY_NMT",
+             HOME + "mt_gender/data/aggregates"],
+            ["en_anti.txt", "en_pro.txt", "en.txt"])
 
