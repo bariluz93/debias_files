@@ -93,9 +93,9 @@ class DebiasManager():
         :return: instance of a relevant debias manager
         """
         _, _, _, DEBIAS_METHOD, _, _, _, _, _ = get_basic_configurations(consts_config_str)
-        if DebiasMethod(DEBIAS_METHOD) == DebiasMethod.BOLUKBASY:
+        if DebiasMethod(DEBIAS_METHOD) == DebiasMethod.HARD_DEBIAS:
             return DebiasBlukbasyManager(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
-        elif DebiasMethod(DEBIAS_METHOD) == DebiasMethod.NULL_IT_OUT:
+        elif DebiasMethod(DEBIAS_METHOD) == DebiasMethod.INLP:
             return DebiasINLPManager(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         else:
             raise Exception("the debias method is incorrect")
@@ -545,15 +545,16 @@ class DebiasINLPManager(DebiasManager):
         """
         X_dev, Y_dev, X_train, Y_train, X_test, Y_test, all_significantly_biased_vecs, \
         all_significantly_biased_labels, vecs, words = self.debias_inlp_preparation()
-        gender_clf = LinearSVC
-        # gender_clf = SGDClassifier
+        # gender_clf = LinearSVC
+        gender_clf = SGDClassifier
         # gender_clf = LogisticRegression
         # gender_clf = LinearDiscriminantAnalysis
         # gender_clf = Perceptron
 
-        params_svc = {'fit_intercept': False, 'class_weight': None, "dual": False, 'random_state': 0}
+        # params_svc = {'fit_intercept': False, 'class_weight': None, "dual": False, 'random_state': 0}
         params_sgd = {'fit_intercept': False, 'class_weight': None, 'max_iter': 1000, 'random_state': 0}
-        params = params_svc
+        # params = params_svc
+        params = params_sgd
         # params = {'loss': 'hinge', 'n_jobs': 16, 'penalty': 'l2', 'max_iter': 2500, 'random_state': 0}
         # params = {}
         n = 35

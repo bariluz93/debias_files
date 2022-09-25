@@ -33,7 +33,7 @@ if __name__ == '__main__':
         help="a config dictionary str that conatains: \n"
              "USE_DEBIASED= run translate on the debiased dictionary or not\n"
              "LANGUAGE= the language to translate to from english. RUSSIAN = 0, GERMAN = 1, HEBREW = 2\n"
-             "DEBIAS_METHOD= the debias method. BOLUKBASY = 0 NULL_IT_OUT = 1\n"
+             "DEBIAS_METHOD= the debias method. HARD_DEBIAS = 0 INLP = 1\n"
     )
     args = parser.parse_args()
     translate(args.input, args.output, args.config_str)

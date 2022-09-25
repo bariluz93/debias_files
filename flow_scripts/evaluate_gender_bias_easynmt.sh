@@ -55,7 +55,7 @@ do
       echo "usage:
 Mandatory arguments:
   -l, --language                  the destination translation language. RUSSIAN = 0, GERMAN = 1,HEBREW = 2,SPANISH = 3 .
-  -d, --debias_method             the debias method. BOLUKBASY = 0, NULL_IT_OUT = 1 .
+  -d, --debias_method             the debias method. HARD_DEBIAS = 0, INLP = 1 .
 Optional arguments:
   -p, --preprocess                preprocess the anti dataset .
   -t, --translate                 translate the entire dataset .

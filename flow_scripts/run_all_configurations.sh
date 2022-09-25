@@ -118,7 +118,8 @@ fi
 ### done correctness checks
 
 scripts_dir=`pwd`
-source ${scripts_dir}/consts.sh 0 0 ${model}
+# the dst language here doesn't matter
+source ${scripts_dir}/consts.sh ru 0 ${model}
 
 echo "#################### cleanup ####################"
 nematus_dir=/cs/usr/bareluz/gabi_labs/nematus_clean/nematus

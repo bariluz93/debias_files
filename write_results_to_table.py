@@ -10,6 +10,10 @@ from datetime import datetime
 from pathlib import Path
 import ast
 
+INLP = "INLP"
+
+HARD_DEBIAS = "Hard Debias"
+
 LANGUAGES =LANGUAGE_STR_MAP.values()
 DEBIAS_METHODS = [d.value for d in DebiasMethod]
 
@@ -81,12 +85,12 @@ def get_all_results(files_dict):
         method_results = []
         for lang in LANGUAGES:
             orig_bleu = results[lang][0]["translation"]["non_debiased"]
-            orig_delta_s = results[lang][0]["gender"]["non_debiased"]
-            orig_results += [orig_bleu, -math.inf, orig_delta_s, -math.inf]
+            orig_anti_accuracy = results[lang][0]["gender"]["non_debiased"]
+            orig_results += [orig_bleu, -math.inf, orig_anti_accuracy, -math.inf]
             method_bleu = results[lang][debias_method]["translation"]["debiased"]
-            method_delta_s = results[lang][debias_method]["gender"]["debiased"]
+            method_anti_accuracy = results[lang][debias_method]["gender"]["debiased"]
 
-            method_results += [method_bleu, method_bleu-orig_bleu, method_delta_s, method_delta_s-orig_delta_s]
+            method_results += [method_bleu, method_bleu-orig_bleu, method_anti_accuracy, method_anti_accuracy-orig_anti_accuracy]
         methods_results+=[method_results]
     results =np.around([orig_results, methods_results[0], methods_results[1]], 2)
     results[results==-math.inf] = None
@@ -99,7 +103,7 @@ def get_all_results(files_dict):
 
 def write_professions_results_to_csv(professions_results, model):
     headers = [None, "Russian", None, "German",None, "Hebrew", None]
-    sub_headers = [None]+["Bolukbasy", "Null It Out"]*3
+    sub_headers = [None] + [HARD_DEBIAS, INLP] * 3
     index = [[p] for p in professions_results.keys()]
     data = np.append(index, list(professions_results.values()), axis=1)
     now = datetime.now()
@@ -112,8 +116,8 @@ def write_professions_results_to_csv(professions_results, model):
         writer.writerows(data)
 def write_results_to_csv(results, model):
     headers = [None, "Russian", None, None, None, "German",None, None, None,  "Hebrew", None, None, None]
-    sub_headers = [None]+["Bleu", "delta Bleu", "delta s", "delta delta s"]*3
-    index = [["Original"], ["Bolukbasy"], ["Null It Out"]]
+    sub_headers = [None]+["Bleu", "delta Bleu", "anti accuracy", "delta anti accuracy"]*3
+    index = [["Original"], [HARD_DEBIAS], [INLP]]
     data = np.append(index, results, axis=1)
     now = datetime.now()
     dt_string = now.strftime("%d-%m-%Y_%H-%M-%S")
@@ -126,9 +130,9 @@ def write_results_to_csv(results, model):
 def write_results_to_table(results, model):
 
 
-    iterables = [["Russian", "German",  "Hebrew"], ["Bleu", "delta Bleu", "delta s", "delta delta s"]]
+    iterables = [["Russian", "German",  "Hebrew"], ["Bleu", "delta Bleu", "anti accuracy", "delta anti accuracy"]]
     index =pd.MultiIndex.from_product(iterables)
-    df = pd.DataFrame(results, index=["Original", "Bolukbasy", "Null It Out"], columns=index)
+    df = pd.DataFrame(results, index=["Original", HARD_DEBIAS, INLP], columns=index)
     now = datetime.now()
     dt_string = now.strftime("%d-%m-%Y_%H-%M-%S")
     with open(OUTPUTS_HOME+"results/results_"+model+"_"+dt_string+".tex", 'w') as f:
