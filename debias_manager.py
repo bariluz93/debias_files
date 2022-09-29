@@ -25,14 +25,16 @@ from sklearn.decomposition import PCA
 import sklearn
 import random
 from sklearn.svm import LinearSVC, SVC
+from sklearn.linear_model import SGDClassifier, Perceptron, LogisticRegression, PassiveAggressiveClassifier
 import copy
 
 # sys.path.append("..")  # Adds higher directory to python modules path.
 sys.path.append("../../debias_files")  # Adds higher directory to python modules path.
 
 from consts import get_debias_files_from_config, EMBEDDING_SIZE, DEFINITIONAL_FILE, PROFESSIONS_FILE, \
-    GENDER_SPECIFIC_FILE, EQUALIZE_FILE, get_basic_configurations, DebiasMethod, get_basic_configurations, \
-    TranslationModelsEnum, get_evaluate_gender_files, WordsToDebias, ENGLISH_VOCAB, param_dict, LANGUAGE_OPPOSITE_STR_MAP, lang_to_gender_specific_words_map,PROJECT_HOME
+    GENDER_SPECIFIC_FILE, EQUALIZE_FILE, DebiasMethod, get_basic_configurations, \
+    TranslationModelsEnum, get_evaluate_gender_files, WordsToDebias, ENGLISH_VOCAB, param_dict,\
+    LANGUAGE_OPPOSITE_STR_MAP, lang_to_gender_specific_words_map,ANNOTATIONS_DATA_HOME
 
 sys.path.append("../..")  # Adds higher directory to python modules path.
 from nullspace_projection.src.debias import load_word_vectors, project_on_gender_subspaces, get_vectors, \
@@ -49,7 +51,7 @@ class DebiasManager():
         self.debias_target_language = debias_target_language
         self.consts_config_str = consts_config_str
         self.DICT_SIZE, self.ENG_DICT_FILE, self.OUTPUT_TRANSLATE_FILE, self.EMBEDDING_TABLE_FILE, \
-        self.EMBEDDING_DEBIASWE_FILE, self.DEBIASED_EMBEDDING, self.SANITY_CHECK_FILE = \
+        self.EMBEDDING_DEBIASWE_FILE, self.DEBIASED_EMBEDDING, self.SANITY_CHECK_FILE, self.DEFINITIONAL_FILE_TARGET_LANG = \
             get_debias_files_from_config(consts_config_str)
 
         _, _, _, _, self.TRANSLATION_MODEL, self.DEBIAS_ENCODER, self.BEGINNING_DECODER_DEBIAS,self.END_DECODER_DEBIAS, self.WORDS_TO_DEBIAS = get_basic_configurations(
@@ -58,10 +60,12 @@ class DebiasManager():
 
         ### prepare professions to debias
         self.professions = self.get_all_professions()
-        with open(PROJECT_HOME+'debias_files/hebrew_professions_filtered') as f:
+        with open(ANNOTATIONS_DATA_HOME+"he_professions.txt") as f:
             self.hebrew_professions = [p.strip() for p in f.readlines()]
-        with open(PROJECT_HOME+'debias_files/german_professions_filtered') as f:
+        with open(ANNOTATIONS_DATA_HOME+"de_professions.txt") as f:
             self.german_professions = [p.strip() for p in f.readlines()]
+        with open(ANNOTATIONS_DATA_HOME+"ru_professions.txt") as f:
+            self.russian_professions = [p.strip() for p in f.readlines()]
 
         # happens only on sanity check and nematus
         if tokenizer is None:
@@ -74,6 +78,7 @@ class DebiasManager():
             self.professions = self._tokenize_professions(tokenizer,self.professions)
             self.hebrew_professions = self._tokenize_professions(tokenizer,self.hebrew_professions)
             self.german_professions = self._tokenize_professions(tokenizer,self.german_professions)
+            self.russian_professions = self._tokenize_professions(tokenizer,self.russian_professions)
 
         self.tokenizer = tokenizer
         ### define embedding table to debias
@@ -406,7 +411,7 @@ class DebiasINLPManager(DebiasManager):
     def __init__(self, consts_config_str, non_debiased_embeddings=None, tokenizer=None, debias_target_language=False):
         super().__init__(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         self.prepare_data_to_debias()
-        self.by_pca = False
+        self.by_pca = True
 
     def prepare_data_to_debias(self, embeddings=None):
         """
@@ -428,14 +433,33 @@ class DebiasINLPManager(DebiasManager):
         :return: a vector represents the gender direction
         """
         if self.by_pca:
-            pairs = [("woman", "man"), ("girl", "boy"), ("she", "he"), ("mother", "father"),
-                     ("daughter", "son"), ("female", "male"), ("her", "his"),
-                     ("herself", "himself"), ("Mary", "John")]
-            if self.tokenizer is not None:
-                for i in range(len(pairs)):
-                    a, b = pairs[i]
-                    pairs[i] = (self.tokenizer.tokenize(a)[0], self.tokenizer.tokenize(b)[0])
-            # pairs = [("male", "female"), ("masculine", "feminine"), ("he", "she"), ("him", "her")]
+            if self.debias_target_language:
+                with open(self.DEFINITIONAL_FILE_TARGET_LANG, "r") as f:
+                    pairs = json.load(f)
+                # todo move this to separate function
+                with self.tokenizer.as_target_tokenizer():
+                    for i in range(len(pairs)):
+                        a, b = pairs[i]
+                        i_a,i_b = self.tokenizer(a)['input_ids'],self.tokenizer(b)['input_ids']
+                        t_a,t_b = self.tokenizer.convert_ids_to_tokens(i_a),self.tokenizer.convert_ids_to_tokens(i_b)
+                        if "</s>" in t_a:
+                            t_a.remove("</s>")
+                        if "▁" in t_a:
+                            t_a.remove("▁")
+                        if "</s>" in t_b:
+                            t_b.remove("</s>")
+                        if "▁" in t_b:
+                            t_b.remove("▁")
+                        pairs[i]=(t_a[0],t_b[0])
+
+            else:
+                pairs = [("woman", "man"), ("girl", "boy"), ("she", "he"), ("mother", "father"),
+                         ("daughter", "son"), ("female", "male"), ("her", "his"),
+                         ("herself", "himself"), ("Mary", "John")]
+                if self.tokenizer is not None:
+                    for i in range(len(pairs)):
+                        a, b = pairs[i]
+                        pairs[i] = (self.tokenizer.tokenize(a)[0], self.tokenizer.tokenize(b)[0])
             gender_vecs = [self.model[p[0]] - self.model[p[1]] for p in pairs]
             pca = PCA(n_components=1)
             pca.fit(gender_vecs)
@@ -480,7 +504,7 @@ class DebiasINLPManager(DebiasManager):
             lang_model,lang_vecs,lang_words = load_word_vectors(fname=param_dict[LANGUAGE_OPPOSITE_STR_MAP[self.target_lang]]["VOCAB_INLP_EN"])
 
 
-        num_vectors_per_class = 7500
+        num_vectors_per_class = 3000
         gender_direction = self.get_gender_direction()
 
         gender_unit_vec = gender_direction / np.linalg.norm(gender_direction)
@@ -545,16 +569,16 @@ class DebiasINLPManager(DebiasManager):
         """
         X_dev, Y_dev, X_train, Y_train, X_test, Y_test, all_significantly_biased_vecs, \
         all_significantly_biased_labels, vecs, words = self.debias_inlp_preparation()
-        # gender_clf = LinearSVC
-        gender_clf = SGDClassifier
+        gender_clf = LinearSVC
+        # gender_clf = SGDClassifier
         # gender_clf = LogisticRegression
         # gender_clf = LinearDiscriminantAnalysis
         # gender_clf = Perceptron
 
-        # params_svc = {'fit_intercept': False, 'class_weight': None, "dual": False, 'random_state': 0}
-        params_sgd = {'fit_intercept': False, 'class_weight': None, 'max_iter': 1000, 'random_state': 0}
-        # params = params_svc
-        params = params_sgd
+        params_svc = {'fit_intercept': False, 'class_weight': None, "dual": False, 'random_state': 0}
+        # params_sgd = {'fit_intercept': False, 'class_weight': None, 'max_iter': 100, 'random_state': 0}
+        params = params_svc
+        # params = params_sgd
         # params = {'loss': 'hinge', 'n_jobs': 16, 'penalty': 'l2', 'max_iter': 2500, 'random_state': 0}
         # params = {}
         n = 35
@@ -573,13 +597,14 @@ class DebiasINLPManager(DebiasManager):
 
         if self.debias_target_language:
             print("debiasing target language")
-            if self.target_lang == 'he':
-                professions_indices = np.searchsorted(words, self.hebrew_professions)
-            elif self.target_lang == 'de':
-                professions_indices = np.searchsorted(words, self.german_professions)
-            else:
-                print("no professions list for language " + self.target_lang + " debiasing source language instead")
-                professions_indices = np.searchsorted(words, self.professions)
+            with self.tokenizer.as_target_tokenizer():
+                if self.target_lang == 'he':
+                    professions_indices = self.tokenizer.convert_tokens_to_ids(self.hebrew_professions)
+                elif self.target_lang == 'de':
+                    professions_indices = self.tokenizer.convert_tokens_to_ids( self.german_professions)
+                else:
+                    print("no professions list for language " + self.target_lang + " debiasing source language instead")
+                    professions_indices = np.searchsorted(words, self.professions)
 
         else:
             professions_indices = self.tokenizer.convert_tokens_to_ids(self.professions)
@@ -635,11 +660,30 @@ class DebiasBlukbasyManager(DebiasManager):
         :return: the debiased embedding table
         """
         # self.E = we.WordEmbedding(self.EMBEDDING_DEBIASWE_FILE)
-        with open(DEFINITIONAL_FILE, "r") as f:
-            defs = json.load(f)
-        if self.tokenizer is not None:
+        if self.debias_target_language:
+            with open(self.DEFINITIONAL_FILE_TARGET_LANG, "r") as f:
+                defs = json.load(f)
+                tokenized_defs = []
+                # todo move this to separate function
+                with self.tokenizer.as_target_tokenizer():
+                    for w in defs:
+                        i_a,i_b = self.tokenizer(w[0])["input_ids"],self.tokenizer(w[1])["input_ids"]
+                        t_a,t_b = self.tokenizer.convert_ids_to_tokens(i_a),self.tokenizer.convert_ids_to_tokens(i_b)
+                        if "</s>" in t_a:
+                            t_a.remove("</s>")
+                        if "▁" in t_a:
+                            t_a.remove("▁")
+                        if "</s>" in t_b:
+                            t_b.remove("</s>")
+                        if "▁" in t_b:
+                            t_b.remove("▁")
+                        tokenized_defs.append([t_a[0],t_b[0]])
+
+        else:
+            with open(DEFINITIONAL_FILE, "r") as f:
+                defs = json.load(f)
             tokenized_defs = [[self.tokenizer.tokenize(w[0])[0], self.tokenizer.tokenize(w[1])[0]] for w in defs]
-            defs = tokenized_defs
+        defs = tokenized_defs
         print("definitional", defs)
 
         with open(EQUALIZE_FILE, "r") as f:

@@ -20,9 +20,9 @@ en_dataset_paths = [DATA_HOME+'en_ru_30.11.20/newstest2019-enru.en',
                     DATA_HOME+'en_he_20.07.21/dev.en',
                     ANTI_DATA_HOME+'anti.en']
 
-_, _, _, _, EMBEDDING_DEBIASWE_FILE_RU, _, _=get_debias_files_from_config(config_ru)
-_, _, _, _, EMBEDDING_DEBIASWE_FILE_DE, _, _=get_debias_files_from_config(config_de)
-_, _, _, _, EMBEDDING_DEBIASWE_FILE_HE, _, _=get_debias_files_from_config(config_he)
+_, _, _, _, EMBEDDING_DEBIASWE_FILE_RU, _, _,_=get_debias_files_from_config(config_ru)
+_, _, _, _, EMBEDDING_DEBIASWE_FILE_DE, _, _,_=get_debias_files_from_config(config_de)
+_, _, _, _, EMBEDDING_DEBIASWE_FILE_HE, _, _,_=get_debias_files_from_config(config_he)
 
 def get_vocab(tokenizer, src_path, target_filename):
     with open(src_path, 'r') as src_file, open(target_filename, 'w+') as dst_vocab:

@@ -6,6 +6,7 @@ DEBIAS_FILES_HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/debias_files/"
 MT_GENDER_HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/mt_gender/"
 DATA_HOME = "/cs/snapless/gabis/bareluz/debias_nmt_data/data/"
 ANTI_DATA_HOME = "/cs/snapless/gabis/bareluz/debias_nmt_data/anti_data/"
+ANNOTATIONS_DATA_HOME = "/cs/snapless/gabis/bareluz/debias_nmt_data/professions_annotations/"
 OUTPUTS_HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/debias_outputs/"
 ENGLISH_VOCAB = '/cs/snapless/gabis/bareluz/debias_nmt_data/en_vocab_merged.txt'
 
@@ -48,7 +49,6 @@ param_dict = {
             "VOCAB_INLP": DATA_HOME + "en_ru_30.11.20/ru_vocab_inlp.txt",
             "VOCAB_INLP_EN": DATA_HOME + "en_ru_30.11.20/en_vocab_inlp.txt",
             "VOCAB_EN": DATA_HOME + "en_ru_30.11.20/en_vocab.txt",
-
         },
     Language.GERMAN:
         {
@@ -132,7 +132,8 @@ def get_debias_files_from_config(config_str):
     now = datetime.now()
     SANITY_CHECK_FILE = OUTPUTS_HOME + "en-" + lang + "/debias/sanity_check_" + now.strftime("%d-%m-%Y_%H-%M-%S") + ".csv"
 
-    return DICT_SIZE, ENG_DICT_FILE, OUTPUT_TRANSLATE_FILE, EMBEDDING_TABLE_FILE, EMBEDDING_DEBIASWE_FILE, DEBIASED_EMBEDDING, SANITY_CHECK_FILE
+    DEFINITIONAL_FILE_TARGET_LANG = ANNOTATIONS_DATA_HOME + lang + "_definitional_pairs.json"
+    return DICT_SIZE, ENG_DICT_FILE, OUTPUT_TRANSLATE_FILE, EMBEDDING_TABLE_FILE, EMBEDDING_DEBIASWE_FILE, DEBIASED_EMBEDDING, SANITY_CHECK_FILE,DEFINITIONAL_FILE_TARGET_LANG
 
 
 def get_evaluate_gender_files(config_str):
