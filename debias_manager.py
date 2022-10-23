@@ -40,7 +40,6 @@ sys.path.append("../..")  # Adds higher directory to python modules path.
 from nullspace_projection.src.debias import load_word_vectors, project_on_gender_subspaces, get_vectors, \
     get_debiasing_projection
 from nullspace_projection.notebooks.inlp_functions import tsne, compute_v_measure
-
 np.set_printoptions(suppress=True)
 
 
@@ -64,8 +63,8 @@ class DebiasManager():
             self.hebrew_professions = [p.strip() for p in f.readlines()]
         with open(ANNOTATIONS_DATA_HOME+"de_professions.txt") as f:
             self.german_professions = [p.strip() for p in f.readlines()]
-        with open(ANNOTATIONS_DATA_HOME+"ru_professions.txt") as f:
-            self.russian_professions = [p.strip() for p in f.readlines()]
+        # with open(ANNOTATIONS_DATA_HOME+"ru_professions.txt") as f:
+        #     self.russian_professions = [p.strip() for p in f.readlines()]
 
         # happens only on sanity check and nematus
         if tokenizer is None:
@@ -78,7 +77,7 @@ class DebiasManager():
             self.professions = self._tokenize_professions(tokenizer,self.professions)
             self.hebrew_professions = self._tokenize_professions(tokenizer,self.hebrew_professions)
             self.german_professions = self._tokenize_professions(tokenizer,self.german_professions)
-            self.russian_professions = self._tokenize_professions(tokenizer,self.russian_professions)
+            # self.russian_professions = self._tokenize_professions(tokenizer,self.russian_professions)
 
         self.tokenizer = tokenizer
         ### define embedding table to debias
@@ -179,7 +178,6 @@ class DebiasManager():
         for line in lines:
             professions.add((line.split("\t")[-1]).strip())
         return list(professions)
-
     def get_non_debiased_embedding_table(self):
         """
         if the embedding table , printed in translate run, contains all lines, creates a matrix with the right order of
@@ -411,7 +409,7 @@ class DebiasINLPManager(DebiasManager):
     def __init__(self, consts_config_str, non_debiased_embeddings=None, tokenizer=None, debias_target_language=False):
         super().__init__(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         self.prepare_data_to_debias()
-        self.by_pca = True
+        self.by_pca = False
 
     def prepare_data_to_debias(self, embeddings=None):
         """
@@ -471,16 +469,16 @@ class DebiasINLPManager(DebiasManager):
                     with self.tokenizer.as_target_tokenizer():
                         he,she =(lang_to_gender_specific_words_map[self.target_lang])[0], \
                                 (lang_to_gender_specific_words_map[self.target_lang])[1]
-                        gender_direction = self.model[self.tokenizer(he)['input_ids'][0]] - self.model[self.tokenizer(she)['input_ids'][0]]
+                        gender_direction = self.model[self.tokenizer(she)['input_ids'][0]] - self.model[self.tokenizer(he)['input_ids'][0]]
                 else:
                     he, she = (lang_to_gender_specific_words_map['en'])[0], \
                               (lang_to_gender_specific_words_map['en'])[1]
-                    gender_direction = self.model[self.tokenizer.tokenize(he)[0]] - \
-                                       self.model[self.tokenizer.tokenize(she)[0]]
+                    gender_direction = self.model[self.tokenizer.tokenize(she)[0]] - \
+                                       self.model[self.tokenizer.tokenize(he)[0]]
 
 
             else:
-                gender_direction = self.model["he"] - self.model["she"]
+                gender_direction = self.model["she"] - self.model["he"]
         return gender_direction
 
 
@@ -602,6 +600,8 @@ class DebiasINLPManager(DebiasManager):
                     professions_indices = self.tokenizer.convert_tokens_to_ids(self.hebrew_professions)
                 elif self.target_lang == 'de':
                     professions_indices = self.tokenizer.convert_tokens_to_ids( self.german_professions)
+                # elif self.target_lang == 'ru':
+                #     professions_indices = self.tokenizer.convert_tokens_to_ids(self.russian_professions)
                 else:
                     print("no professions list for language " + self.target_lang + " debiasing source language instead")
                     professions_indices = np.searchsorted(words, self.professions)

@@ -4,17 +4,21 @@ from os.path import isfile, join
 import shutil
 import argparse
 from consts import TranslationModels
-
+from datetime import datetime
 HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/"
 
 
 def cleanup(paths,files_to_ignore):
+    # now = datetime.now()
+    # dt_string = now.strftime("%d-%m-%Y_%H-%M-%S")
     for path in paths:
         dst_path = path +"/backup"
         if not os.path.exists(dst_path):
             os.makedirs(dst_path)
         files = [f for f in listdir(path) if isfile(join(path, f)) and f not in files_to_ignore]
+        # shutil.make_archive(dst_path, 'zip',path)
         for file in files:
+            # os.remove(os.path.join(path, file))
             shutil.move(os.path.join(path, file), os.path.join(dst_path, file))
 
 if __name__ == '__main__':
@@ -42,7 +46,6 @@ if __name__ == '__main__':
 
 
         cleanup([HOME + "debias_outputs/en-" + language + "/debias",
-                 HOME + "debias_outputs/en-" + language +"/evaluate",
                  HOME + "debias_outputs/en-" + language +"/output", ],
                 files_to_ignore)
     cleanup([HOME + "mt_gender/translations/NEMATUS",

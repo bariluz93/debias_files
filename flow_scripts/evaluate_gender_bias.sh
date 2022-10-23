@@ -126,7 +126,17 @@ echo "#################### prepare gender data ####################"
 python ${debias_files_dir}/prepare_gender_data.py  -c "${config_non_debiased}"
 
 echo "#################### gender evaluation ####################"
-output_result_path=${debias_outputs_dir}/${language_dir}/debias/gender_evaluation_${dst_language}_${debias_method}_${model_str}.txt
+debias_loc=""
+if [ $debias_encoder = 1 ]; then
+  debias_loc="${debias_loc}_A"
+fi
+if [ $beginning_decoder_debias = 1 ]; then
+    debias_loc="${debias_loc}_B"
+fi
+if [ $end_decoder_debias = 1 ]; then
+    debias_loc="${debias_loc}_C"
+fi
+output_result_path=${debias_outputs_dir}/${language_dir}/debias/gender_evaluation_${dst_language}_${debias_method}_${model_str}${debias_loc}.txt
 exec > ${output_result_path}
 exec 2>&1
 cd ${mt_gender_dir}

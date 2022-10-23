@@ -92,6 +92,10 @@ config_non_debiased="{'USE_DEBIASED': 0, 'LANGUAGE': ${language_num}, 'DEBIAS_ME
 
 if [ $translate = true ]; then
   echo "#################### translate anti debias ####################"
+  echo "python ${debias_files_dir}/translate_easynmt.py \
+       -i $input_path \
+       -o ${outputh_path_debiased} \
+       -c ${config_debiased}"
   python ${debias_files_dir}/translate_easynmt.py \
        -i "$input_path" \
        -o "${outputh_path_debiased}" \
@@ -108,7 +112,17 @@ echo "#################### prepare gender data ####################"
 python ${debias_files_dir}/prepare_gender_data.py -c "${config_non_debiased}"
 
 echo "#################### gender evaluation ####################"
-output_result_path=${debias_outputs_dir}/${language_dir}/debias/gender_evaluation_${dst_language}_${debias_method}_${model_str}.txt
+debias_loc=""
+if [ $debias_encoder = 1 ]; then
+  debias_loc="${debias_loc}_A"
+fi
+if [ $beginning_decoder_debias = 1 ]; then
+    debias_loc="${debias_loc}_B"
+fi
+if [ $end_decoder_debias = 1 ]; then
+    debias_loc="${debias_loc}_C"
+fi
+output_result_path=${debias_outputs_dir}/${language_dir}/debias/gender_evaluation_${dst_language}_${debias_method}_${model_str}${debias_loc}.txt
 exec > ${output_result_path}
 exec 2>&1
 cd ${mt_gender_dir}

@@ -118,7 +118,17 @@ fi
 #     -c "{'USE_DEBIASED': 0, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': ${debias_method}}" \
 #     -e 1
 echo "#################### evaluate translation quality ####################"
-output_result_path=${debias_outputs_dir}/${language_dir}/debias/translation_evaluation_${dst_language}_${debias_method}_${model_str}.txt
+debias_loc=""
+if [ $debias_encoder = 1 ]; then
+  debias_loc="${debias_loc}_A"
+fi
+if [ $beginning_decoder_debias = 1 ]; then
+    debias_loc="${debias_loc}_B"
+fi
+if [ $end_decoder_debias = 1 ]; then
+    debias_loc="${debias_loc}_C"
+fi
+output_result_path=${debias_outputs_dir}/${language_dir}/debias/translation_evaluation_${dst_language}_${debias_method}_${model_str}${debias_loc}.txt
 exec > ${output_result_path}
 exec 2>&1
 python ${debias_files_dir}/evaluate_translation.py \
