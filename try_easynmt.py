@@ -4,13 +4,13 @@ from detokenize import detokenize_matrix
 from consts import get_debias_files_from_config, DEFINITIONAL_FILE, PROFESSIONS_FILE, \
     GENDER_SPECIFIC_FILE, EQUALIZE_FILE, get_basic_configurations, DebiasMethod, DEBIAS_FILES_HOME, DATA_HOME
 model = EasyNMT('opus-mt')
-ru_data = DATA_HOME + "en_ru_30.11.20/newstest2019-enru.en"
-de_data = DATA_HOME + "en_de_5.8/newstest2012.en"
-he_data = DATA_HOME + "en_he_20.07.21/dev.en"
+ru_data = DATA_HOME+"data/" + "en_ru_30.11.20/newstest2019-enru.en"
+de_data = DATA_HOME+"data/" + "en_de_5.8/newstest2012.en"
+he_data = DATA_HOME+"data/" + "en_he_20.07.21/dev.en"
 
-ru_gold = DATA_HOME + "en_ru_30.11.20/newstest2019-enru.ru"
-de_gold = DATA_HOME + "en_de_5.8/newstest2012.de"
-he_gold = DATA_HOME + "en_he_20.07.21/dev.he"
+ru_gold = DATA_HOME+"data/" + "en_ru_30.11.20/newstest2019-enru.ru"
+de_gold = DATA_HOME+"data/" + "en_de_5.8/newstest2012.de"
+he_gold = DATA_HOME+"data/" + "en_he_20.07.21/dev.he"
 
 ru_translation_file = DEBIAS_FILES_HOME + "en_ru_easynmt.txt"
 de_translation_file = DEBIAS_FILES_HOME + "en_de_easynmt.txt"

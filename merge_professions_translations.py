@@ -1,13 +1,15 @@
-from consts import ANNOTATIONS_DATA_HOME
+from consts import DATA_HOME
 
 
 
-hebrew_file_names = [ANNOTATIONS_DATA_HOME+"he1_translations", ANNOTATIONS_DATA_HOME+"he2_translations",
-                     ANNOTATIONS_DATA_HOME+"he3_translations"]
-german_file_names = [ANNOTATIONS_DATA_HOME+"de1_translations", ANNOTATIONS_DATA_HOME+"de2_translations",
-                     ANNOTATIONS_DATA_HOME+"de3_translations"]
-russian_file_names = [ANNOTATIONS_DATA_HOME+"ru1_translations", ANNOTATIONS_DATA_HOME+"ru2_translations",
-                     ANNOTATIONS_DATA_HOME+"ru3_translations"]
+hebrew_file_names = [DATA_HOME+"professions_annotations/"+"he1_translations", DATA_HOME+"professions_annotations/"+"he2_translations",
+                     DATA_HOME+"professions_annotations/"+"he3_translations"]
+german_file_names = [DATA_HOME+"professions_annotations/"+"de1_translations", DATA_HOME+"professions_annotations/"+"de2_translations",
+                     DATA_HOME+"professions_annotations/"+"de3_translations"]
+russian_file_names = [DATA_HOME+"professions_annotations/"+"ru1_translations", DATA_HOME+"professions_annotations/"+"ru2_translations",
+                     DATA_HOME+"professions_annotations/"+"ru3_translations"]
+spanish_file_names = [DATA_HOME+"professions_annotations/"+"es1_translations", DATA_HOME+"professions_annotations/"+"es2_translations",
+                     DATA_HOME+"professions_annotations/"+"es3_translations"]
 
 
 def merge_translations(file_names, target_file):
@@ -49,12 +51,13 @@ def get_professions_list(translations_dict, professions, target_file):
 
 if __name__ == '__main__':
     # this was in the case where we had all annotations and we wanted a sum of them
-    he_translations, professions = merge_translations(hebrew_file_names, ANNOTATIONS_DATA_HOME+"he_merged_translations.txt")
-    de_translations, professions = merge_translations(german_file_names, ANNOTATIONS_DATA_HOME+"de_merged_translations.txt")
-    ru_translations, professions = merge_translations(russian_file_names, ANNOTATIONS_DATA_HOME+"ru_merged_translations.txt")
+    # he_translations, professions = merge_translations(hebrew_file_names, DATA_HOME+"professions_annotations/"+"he_merged_translations.txt")
+    # de_translations, professions = merge_translations(german_file_names, DATA_HOME+"professions_annotations/"+"de_merged_translations.txt")
+    # ru_translations, professions = merge_translations(russian_file_names, DATA_HOME+"professions_annotations/"+"ru_merged_translations.txt")
+    es_translations, professions = merge_translations(spanish_file_names, DATA_HOME+"professions_annotations/"+"es_merged_translations.txt")
 
-    he_professions = get_professions_list(he_translations, professions,ANNOTATIONS_DATA_HOME+"he_professions.txt")
-    de_professions = get_professions_list(de_translations, professions,ANNOTATIONS_DATA_HOME+"de_professions.txt")
-    ru_professions = get_professions_list(ru_translations, professions,ANNOTATIONS_DATA_HOME+"ru_professions.txt")
-    a=1
+    # he_professions = get_professions_list(he_translations, professions,DATA_HOME+"professions_annotations/"+"he_professions.txt")
+    # de_professions = get_professions_list(de_translations, professions,DATA_HOME+"professions_annotations/"+"de_professions.txt")
+    # ru_professions = get_professions_list(ru_translations, professions,DATA_HOME+"professions_annotations/"+"ru_professions.txt")
+    es_professions = get_professions_list(es_translations, professions,DATA_HOME+"professions_annotations/"+"es_professions.txt")
 

@@ -86,14 +86,25 @@ done
 scripts_dir=`pwd`
 source ${scripts_dir}/consts.sh ${language} ${debias_method} 0
 
+debias_loc=""
+if [ $debias_encoder = 1 ]; then
+  debias_loc="${debias_loc}_A"
+fi
+if [ $beginning_decoder_debias = 1 ]; then
+    debias_loc="${debias_loc}_B"
+fi
+if [ $end_decoder_debias = 1 ]; then
+    debias_loc="${debias_loc}_C"
+fi
+
 #################### translate some dataset to test translation quality ####################
 #echo "input_path: ${input_path}"
 model_type=bpe256
 model_name=model.npz
 model_dir=${snapless_data_dir}/models/${language_dir}/${model_type}/${model_name}
 #echo "model_dir: ${model_dir}"
-outputh_path_debiased=${debias_outputs_dir}/${language_dir}/output/debiased_${debias_method}_NEMATUS.out.tmp
-outputh_path_non_debiased=${debias_outputs_dir}/${language_dir}/output/non_debiased_${debias_method}_NEMATUS.out.tmp
+outputh_path_debiased=${debias_outputs_dir}/${language_dir}/output/debiased_${debias_method}_NEMATUS${debias_loc}.out.tmp
+outputh_path_non_debiased=${debias_outputs_dir}/${language_dir}/output/non_debiased_${debias_method}_NEMATUS${debias_loc}.out.tmp
 #echo "outputh_path_debiased: ${outputh_path_debiased}"
 #echo "outputh_path_non_debiased: ${outputh_path_non_debiased}"
 config_debiased="{'USE_DEBIASED': 1, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': ${debias_method}, 'TRANSLATION_MODEL': 0, 'DEBIAS_ENCODER': ${debias_encoder}, 'BEGINNING_DECODER_DEBIAS': ${beginning_decoder_debias}, 'END_DECODER_DEBIAS': ${end_decoder_debias}, 'WORDS_TO_DEBIAS': ${words_to_debias}}"
@@ -118,16 +129,7 @@ fi
 #     -c "{'USE_DEBIASED': 0, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': ${debias_method}}" \
 #     -e 1
 echo "#################### evaluate translation quality ####################"
-debias_loc=""
-if [ $debias_encoder = 1 ]; then
-  debias_loc="${debias_loc}_A"
-fi
-if [ $beginning_decoder_debias = 1 ]; then
-    debias_loc="${debias_loc}_B"
-fi
-if [ $end_decoder_debias = 1 ]; then
-    debias_loc="${debias_loc}_C"
-fi
+
 output_result_path=${debias_outputs_dir}/${language_dir}/debias/translation_evaluation_${dst_language}_${debias_method}_${model_str}${debias_loc}.txt
 exec > ${output_result_path}
 exec 2>&1

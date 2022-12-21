@@ -86,15 +86,28 @@ done
 scripts_dir=`pwd`
 source ${scripts_dir}/consts.sh ${language} ${debias_method} 1
 
+debias_loc=""
+if [ $debias_encoder = 1 ]; then
+  debias_loc="${debias_loc}_A"
+fi
+if [ $beginning_decoder_debias = 1 ]; then
+    debias_loc="${debias_loc}_B"
+fi
+if [ $end_decoder_debias = 1 ]; then
+    debias_loc="${debias_loc}_C"
+fi
+
 #################### translate some dataset to test translation quality ####################
-outputh_path_debiased=${debias_outputs_dir}/${language_dir}/output/debiased_${debias_method}_${model_str}.out.tmp
-outputh_path_non_debiased=${debias_outputs_dir}/${language_dir}/output/non_debiased_${debias_method}_${model_str}.out.tmp
+outputh_path_debiased=${debias_outputs_dir}/${language_dir}/output/debiased_${debias_method}_${model_str}${debias_loc}.out.tmp
+outputh_path_non_debiased=${debias_outputs_dir}/${language_dir}/output/non_debiased_${debias_method}_${model_str}${debias_loc}.out.tmp
 config_debiased="{'USE_DEBIASED': 1, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': ${debias_method}, 'TRANSLATION_MODEL': 1, 'DEBIAS_ENCODER': ${debias_encoder}, 'BEGINNING_DECODER_DEBIAS': ${beginning_decoder_debias}, 'END_DECODER_DEBIAS': ${end_decoder_debias}, 'WORDS_TO_DEBIAS': ${words_to_debias}}"
 config_non_debiased="{'USE_DEBIASED': 0, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': ${debias_method}, 'TRANSLATION_MODEL': 1, 'DEBIAS_ENCODER': ${debias_encoder}, 'BEGINNING_DECODER_DEBIAS': ${beginning_decoder_debias}, 'END_DECODER_DEBIAS': ${end_decoder_debias}, 'WORDS_TO_DEBIAS': ${words_to_debias}}"
-
 if [ $translate = true ]; then
   echo "#################### translate debiased ####################"
-#  echo "python ${nematus_dir}/nematus/translate.py -i $input_path -m  $model_dir -k 12 -n -o ${outputh_path_debiased} -c ${config_debiased}"
+  echo "python ${debias_files_dir}/translate_easynmt.py \
+       -i ${input_path} \
+       -o ${outputh_path_debiased} \
+       -c ${config_debiased}"
   python ${debias_files_dir}/translate_easynmt.py \
        -i "$input_path" \
        -o "${outputh_path_debiased}" \
@@ -108,19 +121,16 @@ if [ $translate = true ]; then
 fi
 echo "#################### evaluate translation quality ####################"
 
-debias_loc=""
-if [ $debias_encoder = 1 ]; then
-  debias_loc="${debias_loc}_A"
-fi
-if [ $beginning_decoder_debias = 1 ]; then
-    debias_loc="${debias_loc}_B"
-fi
-if [ $end_decoder_debias = 1 ]; then
-    debias_loc="${debias_loc}_C"
-fi
+
 
 output_result_path=${debias_outputs_dir}/${language_dir}/debias/translation_evaluation_${dst_language}_${debias_method}_${model_str}${debias_loc}.txt
 exec > ${output_result_path}
 exec 2>&1
+echo "python ${debias_files_dir}/evaluate_translation.py \
+     -c {'USE_DEBIASED': 0, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': \
+     ${debias_method}, 'TRANSLATION_MODEL': 1, 'DEBIAS_ENCODER': ${debias_encoder}, 'BEGINNING_DECODER_DEBIAS': \
+     ${beginning_decoder_debias}, 'END_DECODER_DEBIAS': ${end_decoder_debias}, 'WORDS_TO_DEBIAS': ${words_to_debias}}"
 python ${debias_files_dir}/evaluate_translation.py \
-     -c "{'USE_DEBIASED': 0, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': ${debias_method}, 'TRANSLATION_MODEL': 1, 'DEBIAS_ENCODER': ${debias_encoder}, 'BEGINNING_DECODER_DEBIAS': ${beginning_decoder_debias}, 'END_DECODER_DEBIAS': ${end_decoder_debias}, 'WORDS_TO_DEBIAS': ${words_to_debias}}"
+     -c "{'USE_DEBIASED': 0, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': \
+     ${debias_method}, 'TRANSLATION_MODEL': 1, 'DEBIAS_ENCODER': ${debias_encoder}, 'BEGINNING_DECODER_DEBIAS': \
+     ${beginning_decoder_debias}, 'END_DECODER_DEBIAS': ${end_decoder_debias}, 'WORDS_TO_DEBIAS': ${words_to_debias}}"

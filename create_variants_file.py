@@ -1,5 +1,5 @@
 import json
-from consts import ANNOTATIONS_DATA_HOME
+from consts import DATA_HOME
 def create_variants_dict(merged_annotations, lang):
     variants_dict = {}
     professions = set()
@@ -20,12 +20,13 @@ def create_variants_dict(merged_annotations, lang):
                     variants_dict[english_profession+'-male'].append(columns[i])
                 else:
                     variants_dict[english_profession+'-female'].append(columns[i])
-    with open(ANNOTATIONS_DATA_HOME + lang + "_variants.json", 'w', encoding='utf-8') as file:
+    with open(DATA_HOME+"professions_annotations/" + lang + "_variants.json", 'w', encoding='utf-8') as file:
         json.dump(variants_dict, file, ensure_ascii=False)
     return variants_dict, professions
 
 
 if __name__ == '__main__':
-    de_variants_dict, professions = create_variants_dict(ANNOTATIONS_DATA_HOME+"de_merged_translations_postprocessed.txt","de")
-    he_variants_dict, professions = create_variants_dict(ANNOTATIONS_DATA_HOME+"he_merged_translations_postprocessed.txt","he")
-    ru_variants_dict, professions = create_variants_dict(ANNOTATIONS_DATA_HOME+"ru_merged_translations_postprocessed.txt","ru")
+    # de_variants_dict, professions = create_variants_dict(DATA_HOME+"professions_annotations/"+"de_merged_translations_postprocessed.txt","de")
+    # he_variants_dict, professions = create_variants_dict(DATA_HOME+"professions_annotations/"+"he_merged_translations_postprocessed.txt","he")
+    # ru_variants_dict, professions = create_variants_dict(DATA_HOME+"professions_annotations/"+"ru_merged_translations_postprocessed.txt","ru")
+    ru_variants_dict, professions = create_variants_dict(DATA_HOME+"professions_annotations/"+"es_merged_translations_postprocessed.txt","es")

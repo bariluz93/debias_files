@@ -34,7 +34,7 @@ sys.path.append("../../debias_files")  # Adds higher directory to python modules
 from consts import get_debias_files_from_config, EMBEDDING_SIZE, DEFINITIONAL_FILE, PROFESSIONS_FILE, \
     GENDER_SPECIFIC_FILE, EQUALIZE_FILE, DebiasMethod, get_basic_configurations, \
     TranslationModelsEnum, get_evaluate_gender_files, WordsToDebias, ENGLISH_VOCAB, param_dict,\
-    LANGUAGE_OPPOSITE_STR_MAP, lang_to_gender_specific_words_map,ANNOTATIONS_DATA_HOME
+    LANGUAGE_OPPOSITE_STR_MAP, lang_to_gender_specific_words_map,DATA_HOME
 
 sys.path.append("../..")  # Adds higher directory to python modules path.
 from nullspace_projection.src.debias import load_word_vectors, project_on_gender_subspaces, get_vectors, \
@@ -42,6 +42,8 @@ from nullspace_projection.src.debias import load_word_vectors, project_on_gender
 from nullspace_projection.notebooks.inlp_functions import tsne, compute_v_measure
 np.set_printoptions(suppress=True)
 
+# import random
+# random.seed(10)
 
 class DebiasManager():
 
@@ -59,11 +61,13 @@ class DebiasManager():
 
         ### prepare professions to debias
         self.professions = self.get_all_professions()
-        with open(ANNOTATIONS_DATA_HOME+"he_professions.txt") as f:
+        with open(DATA_HOME+"professions_annotations/"+"he_professions.txt") as f:
             self.hebrew_professions = [p.strip() for p in f.readlines()]
-        with open(ANNOTATIONS_DATA_HOME+"de_professions.txt") as f:
+        with open(DATA_HOME+"professions_annotations/"+"de_professions.txt") as f:
             self.german_professions = [p.strip() for p in f.readlines()]
-        # with open(ANNOTATIONS_DATA_HOME+"ru_professions.txt") as f:
+        with open(DATA_HOME+"professions_annotations/"+"es_professions.txt") as f:
+            self.spanish_professions = [p.strip() for p in f.readlines()]
+        # with open(DATA_HOME+"professions_annotations/"+"ru_professions.txt") as f:
         #     self.russian_professions = [p.strip() for p in f.readlines()]
 
         # happens only on sanity check and nematus
@@ -73,10 +77,13 @@ class DebiasManager():
         # happens the rest of the times
         else:
             self.target_lang = tokenizer.target_lang
+            if self.target_lang =='spa':
+                self.target_lang ="es"
             self.dict = tokenizer.get_vocab()
             self.professions = self._tokenize_professions(tokenizer,self.professions)
             self.hebrew_professions = self._tokenize_professions(tokenizer,self.hebrew_professions)
             self.german_professions = self._tokenize_professions(tokenizer,self.german_professions)
+            self.spanish_professions = self._tokenize_professions(tokenizer,self.spanish_professions)
             # self.russian_professions = self._tokenize_professions(tokenizer,self.russian_professions)
 
         self.tokenizer = tokenizer
@@ -139,6 +146,11 @@ class DebiasManager():
                         t = tokenizer.convert_ids_to_tokens(indices)
                         if len(t) == 1:
                             tokenized_professions.append(t[0])
+
+                        indices = tokenizer(p.lower())['input_ids'][:-1]
+                        t = tokenizer.convert_ids_to_tokens(indices)
+                        if len(t) == 1:
+                            tokenized_professions.append(t[0])
                 # option 2 take all tokens of professions
                 elif self.WORDS_TO_DEBIAS == WordsToDebias.ALL_PROFESSIONS.value:
                     print('debiasing professions with more than one token')
@@ -169,7 +181,7 @@ class DebiasManager():
                         if i not in tokenized_professions:
                             tokenized_professions.append(i)
 
-        return tokenized_professions
+        return set(tokenized_professions)
 
     def get_all_professions(self):
         professions = set()
@@ -426,6 +438,17 @@ class DebiasINLPManager(DebiasManager):
             for w, i in self.dict.items():
                 dest_file.write(w + " " + ' '.join(map(str, embeddings[i, :])) + "\n")
 
+    def doPCA(self,pairs, num_components=10):
+        matrix = []
+        for a, b in pairs:
+            center = (self.model[a] + self.model[b]) / 2
+            matrix.append(self.model[a] - center)
+            matrix.append(self.model[b] - center)
+        matrix = np.array(matrix)
+        pca = PCA(n_components=num_components)
+        pca.fit(matrix)
+        # bar(range(num_components), pca.explained_variance_ratio_)
+        return pca.components_[0]
     def get_gender_direction(self):
         """
         :return: a vector represents the gender direction
@@ -462,6 +485,7 @@ class DebiasINLPManager(DebiasManager):
             pca = PCA(n_components=1)
             pca.fit(gender_vecs)
             gender_direction = pca.components_[0]
+            # gender_direction = self.doPCA(pairs)
 
         else:
             if self.tokenizer is not None:
@@ -469,16 +493,16 @@ class DebiasINLPManager(DebiasManager):
                     with self.tokenizer.as_target_tokenizer():
                         he,she =(lang_to_gender_specific_words_map[self.target_lang])[0], \
                                 (lang_to_gender_specific_words_map[self.target_lang])[1]
-                        gender_direction = self.model[self.tokenizer(she)['input_ids'][0]] - self.model[self.tokenizer(he)['input_ids'][0]]
+                        gender_direction = self.model[self.tokenizer(he)['input_ids'][0]] - self.model[self.tokenizer(she)['input_ids'][0]]
                 else:
                     he, she = (lang_to_gender_specific_words_map['en'])[0], \
                               (lang_to_gender_specific_words_map['en'])[1]
-                    gender_direction = self.model[self.tokenizer.tokenize(she)[0]] - \
-                                       self.model[self.tokenizer.tokenize(he)[0]]
+                    gender_direction = self.model[self.tokenizer.tokenize(he)[0]] - \
+                                       self.model[self.tokenizer.tokenize(she)[0]]
 
 
             else:
-                gender_direction = self.model["she"] - self.model["he"]
+                gender_direction = self.model["he"] - self.model["she"]
         return gender_direction
 
 
@@ -505,9 +529,30 @@ class DebiasINLPManager(DebiasManager):
         num_vectors_per_class = 3000
         gender_direction = self.get_gender_direction()
 
-        gender_unit_vec = gender_direction / np.linalg.norm(gender_direction)
         masc_words_and_scores, fem_words_and_scores, neut_words_and_scores = project_on_gender_subspaces(
             gender_direction, lang_model, n=num_vectors_per_class)
+
+        # #check if gender direction needs to be swapped (male is female and female is male)
+        # male_words = [i[0] for i in masc_words_and_scores]
+        # female_words = [i[0] for i in fem_words_and_scores]
+        # swap = False
+        # if self.debias_target_language:
+        #     if self.target_lang =='de':
+        #         if "▁er" in female_words:
+        #             swap = True
+        #     elif self.target_lang =='he':
+        #         if "▁ואתה" in female_words:
+        #             swap = True
+        #     else:
+        #         pass
+        # else:
+        #     if "▁woman" in male_words:
+        #         swap=True
+        # if swap:
+        #     gender_direction = -gender_direction
+        #     masc_words_and_scores, fem_words_and_scores, neut_words_and_scores = \
+        #         project_on_gender_subspaces(gender_direction, lang_model, n=num_vectors_per_class)
+
         masc_words, masc_scores = list(zip(*masc_words_and_scores))
         neut_words, neut_scores = list(zip(*neut_words_and_scores))
         fem_words, fem_scores = list(zip(*fem_words_and_scores))
@@ -600,6 +645,8 @@ class DebiasINLPManager(DebiasManager):
                     professions_indices = self.tokenizer.convert_tokens_to_ids(self.hebrew_professions)
                 elif self.target_lang == 'de':
                     professions_indices = self.tokenizer.convert_tokens_to_ids( self.german_professions)
+                elif self.target_lang == 'es':
+                    professions_indices = self.tokenizer.convert_tokens_to_ids( self.spanish_professions)
                 # elif self.target_lang == 'ru':
                 #     professions_indices = self.tokenizer.convert_tokens_to_ids(self.russian_professions)
                 else:
@@ -702,6 +749,8 @@ class DebiasBlukbasyManager(DebiasManager):
                 professions = self.hebrew_professions
             elif self.target_lang == 'de':
                 professions = self.german_professions
+            elif self.target_lang == 'es':
+                professions = self.spanish_professions
             else:
                 print("no professions list for language " + self.target_lang + " debiasing source language instead")
                 professions = self.professions
