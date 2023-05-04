@@ -181,7 +181,7 @@ class DebiasManager():
                         if i not in tokenized_professions:
                             tokenized_professions.append(i)
 
-        return set(tokenized_professions)
+        return list(set(tokenized_professions))
 
     def get_all_professions(self):
         professions = set()

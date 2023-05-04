@@ -1,3 +1,5 @@
+import os
+os.environ['TRANSFORMERS_CACHE'] = '/cs/snapless/gabis/bareluz'
 from consts import Language, param_dict,DATA_HOME, MT_GENDER_HOME
 
 from transformers import MarianTokenizer

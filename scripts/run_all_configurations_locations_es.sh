@@ -2,10 +2,9 @@
 set -e
 
 
-
-scripts_dir=`pwd`
+cur_dir=`pwd`
 # the dst language here doesn't matter
-source ${scripts_dir}/consts.sh ru 0 ${model}
+source ${cur_dir}/../scripts/consts.sh ru 0 ${model}
 
 #################### 1 tokens professions ###################
 

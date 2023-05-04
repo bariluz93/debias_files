@@ -17,8 +17,9 @@ model_path=$3
 tokenizer_path=$4
 
 model_dir_name="$(basename -- $model_path)"
-scripts_dir=`pwd`
-source ${scripts_dir}/consts.sh ${TGT_LANG} ${debias_method} 1
+cur_dir=`pwd`
+source ${cur_dir}/../scripts/consts.sh ${TGT_LANG} ${debias_method} 1
+
 
 data_name=/cs/snapless/gabis/bareluz/debias_nmt_data/handcrafted-nooverlap/handcrafted-nooverlap-en${TGT_LANG}
 

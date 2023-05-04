@@ -83,8 +83,8 @@ if words_to_debias is not given, ONE_TOKEN_PROFESSIONS = 1 is selected"
   esac
 done
 
-scripts_dir=`pwd`
-source ${scripts_dir}/consts.sh ${language} ${debias_method} 0
+cur_dir=`pwd`
+source ${cur_dir}/../scripts/consts.sh ${language} ${debias_method} 0
 
 debias_loc=""
 if [ $debias_encoder = 1 ]; then
@@ -133,5 +133,5 @@ echo "#################### evaluate translation quality ####################"
 output_result_path=${debias_outputs_dir}/${language_dir}/debias/translation_evaluation_${dst_language}_${debias_method}_${model_str}${debias_loc}.txt
 exec > ${output_result_path}
 exec 2>&1
-python ${debias_files_dir}/evaluate_translation.py \
+python ${debias_files_dir}/src/evaluate_translation.py \
      -c "{'USE_DEBIASED': 0, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': ${debias_method}, 'TRANSLATION_MODEL': 0, 'DEBIAS_ENCODER': ${debias_encoder}, 'BEGINNING_DECODER_DEBIAS': ${beginning_decoder_debias}, 'END_DECODER_DEBIAS': ${end_decoder_debias}, 'WORDS_TO_DEBIAS': ${words_to_debias}}"
