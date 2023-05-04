@@ -129,6 +129,7 @@ cd ${mt_gender_dir}
 source venv/bin/activate
 cd src
 export FAST_ALIGN_BASE=/cs/usr/bareluz/gabi_labs/nematus_clean/nematus/fast_align
+echo "./../scripts/evaluate_language.sh ../data/aggregates/en_anti.txt ${language} ${model_str} ${debias_method} ${debias_loc}"
 ./../scripts/evaluate_language.sh ../data/aggregates/en_anti.txt ${language} ${model_str} ${debias_method} ${debias_loc}
 
 

@@ -6,7 +6,7 @@ import argparse
 from consts import TranslationModels
 from datetime import datetime
 HOME = "/cs/usr/bareluz/gabi_labs/nematus_clean/"
-
+LOCATIONS = ['A','B','C']
 
 def cleanup(paths,files_to_ignore):
     # now = datetime.now()
@@ -40,10 +40,12 @@ if __name__ == '__main__':
         if not args.clean_translation_files:
             for debias_method in [0,1]:
                 for model in TranslationModels:
-                    files_to_ignore+=["debiased_anti_"+str(debias_method)+"_"+model+".out.tmp",
-                                      "non_debiased_anti_"+str(debias_method)+"_"+model+".out.tmp",
-                                      "debiased_"+str(debias_method)+"_"+model+".out.tmp",
-                                      "non_debiased_"+str(debias_method)+"_"+model+".out.tmp"]
+                    for location in LOCATIONS:
+
+                        files_to_ignore+=["debiased_anti_"+str(debias_method)+"_"+model+"_"+location+".out.tmp",
+                                          "non_debiased_anti_"+str(debias_method)+"_"+model+"_"+location+".out.tmp",
+                                          "debiased_"+str(debias_method)+"_"+model+"_"+location+".out.tmp",
+                                          "non_debiased_"+str(debias_method)+"_"+model+"_"+location+".out.tmp"]
 
 
         cleanup([HOME + "debias_outputs/en-" + language + "/debias",
