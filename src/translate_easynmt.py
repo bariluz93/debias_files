@@ -21,7 +21,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-i', '--input', type=str,
-        help="input file")
+            help="input file")
     parser.add_argument(
         '-o', '--output', type=str,
         help="output file")

@@ -5,16 +5,15 @@ set -e
 #SBATCH --time=7-0
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT
 #SBATCH --mail-user=bar.iluz@mail.huji.ac.il
-#SBATCH --output=/cs/usr/bareluz/gabi_labs/nematus_clean/nematus/slurm/evaluate_translation-%j.out
-echo "**************************************** in evaluate_translation.sh ****************************************"
+#SBATCH --output=/cs/usr/bareluz/gabi_labs/nematus_clean/nematus/slurm/evaluate_gender_bias-%j.out
+echo "**************************************** in evaluate_gender_bias.sh ****************************************"
 
-SHORT=l:,d:,p,t,a,b,e,w:,h
-LONG=language:,debias_method:,preprocess,translate,debias_encoder,beginning_decoder_debias,end_decoder_debias,words_to_debias,help
+SHORT=l:,d:,t,a,b,e,w:,h
+LONG=language:,debias_method:,translate,debias_encoder,beginning_decoder_debias,end_decoder_debias,words_to_debias,help
 OPTS=$(getopt -a -n debias --options $SHORT --longoptions $LONG -- "$@")
 
 eval set -- "$OPTS"
 
-preprocess=false
 translate=false
 debias_encoder=0
 beginning_decoder_debias=0
@@ -31,10 +30,6 @@ do
     -d | --debias_method )
       debias_method="$2"
       shift 2
-      ;;
-    -p | --preprocess )
-      preprocess=true
-      shift 1
       ;;
     -t | --translate )
       translate=true
@@ -82,44 +77,76 @@ if words_to_debias is not given, ONE_TOKEN_PROFESSIONS = 1 is selected"
       exit 1;;
   esac
 done
+cur_dir=`pwd`
+source $${cur_dir}/../scripts/consts.sh ${language} ${debias_method} 0
 
-scripts_dir=`pwd`
-source ${scripts_dir}/consts.sh ${language} ${debias_method} 0
+debias_loc=""
+if [ $debias_encoder = 1 ]; then
+  debias_loc="${debias_loc}_A"
+fi
+if [ $beginning_decoder_debias = 1 ]; then
+    debias_loc="${debias_loc}_B"
+fi
+if [ $end_decoder_debias = 1 ]; then
+    debias_loc="${debias_loc}_C"
+fi
 
-#################### translate some dataset to test translation quality ####################
+############preprocess###############
+if [ $preprocess = true ]; then
+  echo "#################### preprocess ####################"
+  sh ${debias_files_dir}/scripts/global_preprocess.sh ${dst_language}
+fi
+
+#################### translate anti sentences to test gender bias ####################
+input_path=${snapless_data_dir}/anti_data/${language_dir}/anti.unesc.tok.tc.bpe.en
 #echo "input_path: ${input_path}"
 model_type=bpe256
 model_name=model.npz
 model_dir=${snapless_data_dir}/models/${language_dir}/${model_type}/${model_name}
 #echo "model_dir: ${model_dir}"
-outputh_path_debiased=${debias_outputs_dir}/${language_dir}/output/debiased_${debias_method}_NEMATUS.out.tmp
-outputh_path_non_debiased=${debias_outputs_dir}/${language_dir}/output/non_debiased_${debias_method}_NEMATUS.out.tmp
+#output_filename_debiased=debiased_anti_TEST.out.tmp
+outputh_path_debiased=${debias_outputs_dir}/${language_dir}/output/debiased_anti_${debias_method}_NEMATUS${debias_loc}.out.tmp
+outputh_path_non_debiased=${debias_outputs_dir}/${language_dir}/output/non_debiased_anti_${debias_method}_NEMATUS${debias_loc}.out.tmp
 #echo "outputh_path_debiased: ${outputh_path_debiased}"
 #echo "outputh_path_non_debiased: ${outputh_path_non_debiased}"
 config_debiased="{'USE_DEBIASED': 1, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': ${debias_method}, 'TRANSLATION_MODEL': 0, 'DEBIAS_ENCODER': ${debias_encoder}, 'BEGINNING_DECODER_DEBIAS': ${beginning_decoder_debias}, 'END_DECODER_DEBIAS': ${end_decoder_debias}, 'WORDS_TO_DEBIAS': ${words_to_debias}}"
+#echo "config_debiased: ${config_debiased}"
 config_non_debiased="{'USE_DEBIASED': 0, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': ${debias_method}, 'TRANSLATION_MODEL': 0, 'DEBIAS_ENCODER': ${debias_encoder}, 'BEGINNING_DECODER_DEBIAS': ${beginning_decoder_debias}, 'END_DECODER_DEBIAS': ${end_decoder_debias}, 'WORDS_TO_DEBIAS': ${words_to_debias}}"
 
 if [ $translate = true ]; then
-  echo "#################### translate debiased ####################"
-#  echo "python ${nematus_dir}/nematus/translate.py -i $input_path -m  $model_dir -k 12 -n -o ${outputh_path_debiased} -c ${config_debiased}"
+  echo "#################### translate anti debias ####################"
+  echo "python ${nematus_dir}/nematus/translate.py -i ${input_path} -m ${model_dir} -k 12 -n -o ${outputh_path_debiased} -c ${config_debiased}"
   python ${nematus_dir}/nematus/translate.py \
        -i "$input_path" \
        -m "$model_dir" \
        -k 12 -n -o "${outputh_path_debiased}" -c "${config_debiased}"
-
-  echo "#################### translate non debiased ####################"
+  echo "#################### translate anti non debias ####################"
   python ${nematus_dir}/nematus/translate.py \
        -i "$input_path" \
-       -m  "$model_dir" \
+       -m "$model_dir" \
        -k 12 -n -o "${outputh_path_non_debiased}" -c "${config_non_debiased}"
 fi
-#echo "#################### merge_translations ####################"
+
+
+#echo "#################### merge translations ####################"
 #python ${nematus_dir}/merge_translations.py \
 #     -c "{'USE_DEBIASED': 0, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': ${debias_method}}" \
-#     -e 1
-echo "#################### evaluate translation quality ####################"
-output_result_path=${debias_outputs_dir}/${language_dir}/debias/translation_evaluation_${dst_language}_${debias_method}_${model_str}.txt
+#     -e 0
+echo "#################### prepare gender data ####################"
+python ${debias_files_dir}/src/prepare_gender_data.py  -c "${config_non_debiased}"
+
+echo "#################### gender evaluation ####################"
+
+output_result_path=${debias_outputs_dir}/${language_dir}/debias/gender_evaluation_${dst_language}_${debias_method}_${model_str}${debias_loc}.txt
 exec > ${output_result_path}
 exec 2>&1
-python ${debias_files_dir}/evaluate_translation.py \
-     -c "{'USE_DEBIASED': 0, 'LANGUAGE': ${language_num}, 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': ${debias_method}, 'TRANSLATION_MODEL': 0, 'DEBIAS_ENCODER': ${debias_encoder}, 'BEGINNING_DECODER_DEBIAS': ${beginning_decoder_debias}, 'END_DECODER_DEBIAS': ${end_decoder_debias}, 'WORDS_TO_DEBIAS': ${words_to_debias}}"
+cd ${mt_gender_dir}
+#source venv/bin/activate
+cd src
+export FAST_ALIGN_BASE=/cs/usr/bareluz/gabi_labs/nematus_clean/nematus/fast_align
+./../scripts/evaluate_language.sh ../data/aggregates/en_anti.txt ${language} ${model_str} ${debias_method} ${debias_loc}
+#sh ../scripts/evaluate_debiased.sh ${language} ${debias_method} ${model_str}
+
+
+
+

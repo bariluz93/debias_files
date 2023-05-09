@@ -1,21 +1,24 @@
 set -e
 #module load tensorflow/2.0.0
-source /cs/usr/bareluz/gabi_labs/nematus_clean/nematus_env3/bin/activate
+source /cs/usr/bareluz/gabi_labs/nematus_clean/debias_files/src/venv_test/bin/activate
+export snapless_dir=/cs/snapless/gabis/bareluz
+#source ${snapless_dir}/nematus_env3/bin/activate
 export src_language=en
 export dst_language=$1
 export debias_method=$2
 export model=$3
-#echo "language: ${dst_language}"
-#echo "debias_method: ${debias_method}"
 # set PYTHONPATH
 export project_dir=/cs/usr/bareluz/gabi_labs/nematus_clean
-#echo "project_dir: ${project_dir}"
-export PYTHONPATH=${PYTHONPATH}:${project_dir}
-#echo "PYTHONPATH: ${PYTHONPATH}"sh parameters
+export PYTHONPATH=${PYTHONPATH}:${project_dir}/debias_files/src
+unset PYTHONHOME
+#export PYTHONHOME=${PYTHONHOME}:${snapless_dir}
+#export PATH=${PATH}:${project_dir}
+#echo "PATH:${PATH}"
 # set up parameters
 export nematus_dir=/cs/usr/bareluz/gabi_labs/nematus_clean/nematus
 export debias_files_dir=/cs/usr/bareluz/gabi_labs/nematus_clean/debias_files
 export debias_outputs_dir=/cs/usr/bareluz/gabi_labs/nematus_clean/debias_outputs
+export snapless_dir=/cs/snapless/gabis/bareluz
 export snapless_data_dir=/cs/snapless/gabis/bareluz/debias_nmt_data
 export language_dir=${src_language}-${dst_language}
 export mt_gender_dir=/cs/usr/bareluz/gabi_labs/nematus_clean/mt_gender
@@ -36,7 +39,7 @@ case ${model} in
 		export model_str=EASY_NMT
 		;;
 	*)
-		echo "invalid model given. the possible models are 0 for Nematus or 1 to easyNMT"
+		echo "invalid model given (${model}). the possible models are 0 for Nematus or 1 to easyNMT"
 		;;
 esac
 ### done correctness checks

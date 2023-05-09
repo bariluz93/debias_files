@@ -17,6 +17,10 @@ def prepare_gender_sents_translation_to_evaluation(source_filename,source_transl
     :param source_translated_filename: file with the translations to the dest language
     :param dest_filename: the file with the resulted format
     """
+    print("source_filename")
+    print(source_filename)
+    print("source_translated_filename")
+    print(source_translated_filename)
     with open(source_filename, "r") as s1,open(source_translated_filename, "r") as s2, open(dest_filename, "w") as d:
         lines_source = s1.readlines()
         # lines_translated = detokenize_matrix(s2.readlines(), LANGUAGE_STR_MAP[Language(language)])
