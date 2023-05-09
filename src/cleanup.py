@@ -31,7 +31,6 @@ if __name__ == '__main__':
         help="weather should clean the translation files")
     args = parser.parse_args()
     languages = ["de","ru","he","es"]
-    languages.remove("es")
     for language in languages:
         files_to_ignore = []
         if not args.clean_embedding_table:
