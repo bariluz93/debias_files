@@ -31,7 +31,7 @@ LANGUAGES = list(LANGUAGES)
 LANGUAGES.remove('es')
 # LANGUAGES.remove('he')
 # LANGUAGES.remove('de')
-LANGUAGES.remove('ru')
+# LANGUAGES.remove('ru')
 DEBIAS_METHODS = [d.value for d in DebiasMethod]
 DEBIAS_LOCS = ["A", "B", "C","A_B","A_C","B_C","A_B_C"]
 
@@ -100,7 +100,7 @@ def get_gender_results(file_name):
 
 def get_all_results(result_files):
     results = {}
-    professions_results = {}
+    # professions_results = {}
     for language in LANGUAGES:
         results[language] = {BLEU: {}, GENDER_RESULTS: {}}
         for debias_method in DEBIAS_METHODS:
@@ -113,15 +113,15 @@ def get_all_results(result_files):
                 professions_accuracies_non_debiased = \
                 get_gender_results(result_files[language][GENDER_RESULTS][(debias_method, loc)])
 
-                if professions_accuracies_debiased is not None and professions_accuracies_non_debiased is not None:
-                    for p in professions_accuracies_debiased.keys():
-                        if p not in professions_results:
-                            professions_results[p] = {}
-                        if language not in professions_results[p]:
-                            professions_results[p][language] = {}
-
-                        professions_results[p][language][debias_method] = professions_accuracies_debiased[p] - \
-                                                                      professions_accuracies_non_debiased[p]
+                # if professions_accuracies_debiased is not None and professions_accuracies_non_debiased is not None:
+                #     for p in professions_accuracies_debiased.keys():
+                #         if p not in professions_results:
+                #             professions_results[p] = {}
+                #         if language not in professions_results[p]:
+                #             professions_results[p][language] = {}
+                #
+                #         professions_results[p][language][debias_method] = professions_accuracies_debiased[p] - \
+                #                                                       professions_accuracies_non_debiased[p]
     # print(json.dumps(results, sort_keys=True, indent=4))
     results_table={}
     for language in LANGUAGES:
@@ -184,9 +184,9 @@ def get_all_results(result_files):
 
 
     professions_results_table = {}
-    for p in professions_results.keys():
-        professions_results_table[p] = [professions_results[p][language][debias_method] for language in LANGUAGES for
-                                        debias_method in DEBIAS_METHODS]
+    # for p in professions_results.keys():
+    #     professions_results_table[p] = [professions_results[p][language][debias_method] for language in LANGUAGES for
+    #                                     debias_method in DEBIAS_METHODS]
 
     return results_table, professions_results_table
 
@@ -293,4 +293,4 @@ if __name__ == '__main__':
     #         result_files[language][debias_method]["gender"] = OUTPUTS_HOME + "en-" + language + "/debias/gender_evaluation_" + language + "_"+str(debias_method)+"_"+model+".txt"
     res, professions_results_table = get_all_results(result_files)
     write_results_to_dir(res, model,DEBIAS_WORDS_SETS[int(args.words_to_debias)] )
-    write_professions_results_to_csv(professions_results_table, model)
+    # write_professions_results_to_csv(professions_results_table, model)

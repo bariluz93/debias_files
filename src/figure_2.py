@@ -78,6 +78,7 @@ def main(results_dir):
       c = color = sns.color_palette()[0]
       ext = -0.4
 
+
      skip = [3, 6, 9, 10, 14, 17, 23, 26, 29, 30, 34, 37]
      if ind not in skip:
       if ind in [4, 5, 7, 8]:
@@ -93,23 +94,24 @@ def main(results_dir):
 
     ax.set_xticklabels(['de', 'he', 'ru', 'de', 'he', 'de', 'he', 'de', 'he', 'ru', 'de', 'he', 'de', 'he'])
 
-    ax.text(0.5, -11, 'Enc', fontsize=9)
-    ax.text(3.5, -11, 'Dec_in', fontsize=9)
-    ax.text(6.5, -11, 'Dec_out', fontsize=9)
+    ax.text(0.5, -5, 'Enc', fontsize=9)
+    ax.text(3.5, -5, 'Dec_in', fontsize=9)
+    ax.text(6.5, -5, 'Dec_out', fontsize=9)
 
-    ax.text(11.5, -11, 'Enc', fontsize=9)
-    ax.text(14.5, -11, 'Dec_in', fontsize=9)
-    ax.text(17.5, -11, 'Dec_out', fontsize=9)
+    ax.text(11.5, -5, 'Enc', fontsize=9)
+    ax.text(14.5, -5, 'Dec_in', fontsize=9)
+    ax.text(17.5, -5, 'Dec_out', fontsize=9)
 
-    ax.text(1.7, 4.5, 'Hard Debiasing', fontsize=12)
-    ax.text(14.5, 4.5, 'INLP', fontsize=12)
+    ax.text(1.7, 1, 'Hard Debiasing', fontsize=12)
+    ax.text(14.5, 1, 'INLP', fontsize=12)
 
     ax.axvline(9.5, ls='--', c='black')
 
     plt.tight_layout()
 
     plt.savefig("acc-bleu.pdf")
-
+    plt.tight_layout()
+    plt.savefig("fig_2.png")
     plt.show()
 
 if __name__ == '__main__':

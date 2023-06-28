@@ -38,8 +38,11 @@ case ${model} in
 	1)
 		export model_str=EASY_NMT
 		;;
+  2)
+    export model_str=MBART50
+    ;;
 	*)
-		echo "invalid model given (${model}). the possible models are 0 for Nematus or 1 to easyNMT"
+		echo "invalid model given (${model}). the possible models are 0 for Nematus or 1 to easyNMT or 2 to MBART50"
 		;;
 esac
 ### done correctness checks
@@ -50,7 +53,7 @@ case ${dst_language} in
 		NEMATUS)
 		  export input_path=${data_path}/${src_language}_${dst_language}_30.11.20/newstest2019-enru.unesc.tok.tc.bpe.en
 		  ;;
-		EASY_NMT)
+		EASY_NMT|MBART50)
       export input_path=${data_path}/${src_language}_${dst_language}_30.11.20/newstest2019-enru.en
       ;;
     esac
@@ -61,7 +64,7 @@ case ${dst_language} in
 		NEMATUS)
 		  export input_path=${data_path}/${src_language}_${dst_language}_5.8/newstest2012.unesc.tok.tc.bpe.en
 		  ;;
-		EASY_NMT)
+		EASY_NMT|MBART50)
       export input_path=${data_path}/${src_language}_${dst_language}_5.8/newstest2012.en
       ;;
     esac
@@ -72,7 +75,7 @@ case ${dst_language} in
 		NEMATUS)
 		  export input_path=${data_path}/${src_language}_${dst_language}_20.07.21/dev.unesc.tok.tc.bpe.en
 		  ;;
-		EASY_NMT)
+		EASY_NMT|MBART50)
       export input_path=${data_path}/${src_language}_${dst_language}_20.07.21/dev.en
       ;;
     esac
@@ -84,7 +87,7 @@ case ${dst_language} in
 		  echo "NEMATUS doesn't support spanish translation"
 		  exit 1
 		  ;;
-		EASY_NMT)
+		EASY_NMT|MBART50)
       export input_path=${data_path}/${src_language}_${dst_language}/books.en
       ;;
     esac

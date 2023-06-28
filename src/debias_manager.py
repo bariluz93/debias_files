@@ -20,6 +20,7 @@ import csv
 sys.path.append("..")  # Adds higher directory to python modules path.
 from debiaswe.debiaswe import we
 from debiaswe.debiaswe.debias import debias
+from get_lang_vocab import get_and_save_all_vocabs
 import sys
 from sklearn.decomposition import PCA
 import sklearn
@@ -34,7 +35,7 @@ sys.path.append("../../debias_files")  # Adds higher directory to python modules
 from consts import get_debias_files_from_config, EMBEDDING_SIZE, DEFINITIONAL_FILE, PROFESSIONS_FILE, \
     GENDER_SPECIFIC_FILE, EQUALIZE_FILE, DebiasMethod, get_basic_configurations, \
     TranslationModelsEnum, get_evaluate_gender_files, WordsToDebias, ENGLISH_VOCAB, param_dict,\
-    LANGUAGE_OPPOSITE_STR_MAP, lang_to_gender_specific_words_map,DATA_HOME
+    LANGUAGE_OPPOSITE_STR_MAP, lang_to_gender_specific_words_map,DATA_HOME,parse_config,LANGUAGE_STR_MAP,Language,LANGUAGE_CODES_MAP
 
 sys.path.append("../..")  # Adds higher directory to python modules path.
 from nullspace_projection.src.debias import load_word_vectors, project_on_gender_subspaces, get_vectors, \
@@ -44,7 +45,7 @@ np.set_printoptions(suppress=True)
 
 # import random
 # random.seed(10)
-
+TOKENS_TO_IGNORE = ['</s>','▁']+list(LANGUAGE_CODES_MAP.values())+["__de__","__he__","__ru__"]
 class DebiasManager():
 
     def __init__(self, consts_config_str, non_debiased_embeddings=None, tokenizer=None, debias_target_language=False):
@@ -70,18 +71,29 @@ class DebiasManager():
         # with open(DATA_HOME+"professions_annotations/"+"ru_professions.txt") as f:
         #     self.russian_professions = [p.strip() for p in f.readlines()]
 
+        config = parse_config(self.consts_config_str)
+        l = config["LANGUAGE"]
+        self.target_lang = LANGUAGE_STR_MAP[Language(l)]
+
         # happens only on sanity check and nematus
         if tokenizer is None:
             with open(self.ENG_DICT_FILE, 'r') as dict_file:
                 self.dict = json.load(dict_file)
         # happens the rest of the times
         else:
-            self.target_lang = tokenizer.target_lang
+            # try:
+            #     self.target_lang = tokenizer.target_lang
+            # except:
+            #     self.target_lang = tokenizer.tgt_lang
+
             if self.target_lang =='spa':
                 self.target_lang ="es"
             self.dict = tokenizer.get_vocab()
+            print("english professions")
             self.professions = self._tokenize_professions(tokenizer,self.professions)
+            print("hebrew professions")
             self.hebrew_professions = self._tokenize_professions(tokenizer,self.hebrew_professions)
+            print("german professions")
             self.german_professions = self._tokenize_professions(tokenizer,self.german_professions)
             self.spanish_professions = self._tokenize_professions(tokenizer,self.spanish_professions)
             # self.russian_professions = self._tokenize_professions(tokenizer,self.russian_professions)
@@ -93,6 +105,7 @@ class DebiasManager():
             self.non_debiased_embeddings = self.get_non_debiased_embedding_table()
         else:
             self.non_debiased_embeddings = non_debiased_embeddings
+
 
     @staticmethod
     def get_manager_instance(consts_config_str, non_debiased_embeddings=None, tokenizer=None,
@@ -142,22 +155,25 @@ class DebiasManager():
                 if self.WORDS_TO_DEBIAS == WordsToDebias.ONE_TOKEN_PROFESSIONS.value:
                     print('debiasing one token professions')
                     for p in professions:
-                        indices = tokenizer(p)['input_ids'][:-1]
-                        t = tokenizer.convert_ids_to_tokens(indices)
-                        if len(t) == 1:
-                            tokenized_professions.append(t[0])
+                        indices = tokenizer(p)['input_ids']
+                        tokens = tokenizer.convert_ids_to_tokens(indices)
+                        self.remove_tokens_to_ignore(tokens)
+                        if len(tokens) == 1:
+                            tokenized_professions.append(tokens[0])
 
-                        indices = tokenizer(p.lower())['input_ids'][:-1]
-                        t = tokenizer.convert_ids_to_tokens(indices)
-                        if len(t) == 1:
-                            tokenized_professions.append(t[0])
+                        indices = tokenizer(p.lower())['input_ids']
+                        tokens = tokenizer.convert_ids_to_tokens(indices)
+                        self.remove_tokens_to_ignore(tokens)
+                        if len(tokens) == 1:
+                            tokenized_professions.append(tokens[0])
                 # option 2 take all tokens of professions
                 elif self.WORDS_TO_DEBIAS == WordsToDebias.ALL_PROFESSIONS.value:
                     print('debiasing professions with more than one token')
                     for p in professions:
                         indices = tokenizer(p)['input_ids'][:-1]
-                        t = tokenizer.convert_ids_to_tokens(indices)
-                        for i in t:
+                        tokens = tokenizer.convert_ids_to_tokens(indices)
+                        self.remove_tokens_to_ignore(tokens)
+                        for i in tokens:
                             if i not in tokenized_professions:
                                 tokenized_professions.append(i)
         else:
@@ -165,22 +181,21 @@ class DebiasManager():
             if self.WORDS_TO_DEBIAS == WordsToDebias.ONE_TOKEN_PROFESSIONS.value:
                 print('debiasing one token professions')
                 for p in professions:
-                    t = tokenizer.tokenize(p)
-                    if '▁' in t:
-                        t.remove('▁')
-                    if len(t) == 1:
-                        tokenized_professions.append(t[0])
+                    tokens = tokenizer.tokenize(p)
+                    self.remove_tokens_to_ignore(tokens)
+                    if len(tokens) == 1:
+                        tokenized_professions.append(tokens[0])
             # option 2 take all tokens of professions
             elif self.WORDS_TO_DEBIAS == WordsToDebias.ALL_PROFESSIONS.value:
                 print('debiasing professions with more than one token')
                 for p in professions:
-                    t = tokenizer.tokenize(p)
-                    if '▁' in t:
-                        t.remove('▁')
-                    for i in t:
+                    tokens = tokenizer.tokenize(p)
+                    self.remove_tokens_to_ignore(tokens)
+                    for i in tokens:
                         if i not in tokenized_professions:
                             tokenized_professions.append(i)
-
+        print(len(professions))
+        print(len(list(set(tokenized_professions))))
         return list(set(tokenized_professions))
 
     def get_all_professions(self):
@@ -409,18 +424,23 @@ class DebiasManager():
         raise NotImplementedError()
 
     def save(self, debiased_embeddings):
-        ### used only in Nematus
         with open(self.DEBIASED_EMBEDDING, "w") as f:
             # eng_dictionary = json.load(dict_file)
             for w, i in self.dict.items():
                 f.write(w + " " + ' '.join(map(str, debiased_embeddings[i, :])) + "\n")
         print("Wrote debiased embeddings to", self.DEBIASED_EMBEDDING)
 
+    def remove_tokens_to_ignore(self,tokens):
+        for t in TOKENS_TO_IGNORE:
+            if t in tokens:
+                tokens.remove(t)
+
 
 class DebiasINLPManager(DebiasManager):
     def __init__(self, consts_config_str, non_debiased_embeddings=None, tokenizer=None, debias_target_language=False):
         super().__init__(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         self.prepare_data_to_debias()
+        get_and_save_all_vocabs(self.target_lang,self.TRANSLATION_MODEL)
         self.by_pca = False
 
     def prepare_data_to_debias(self, embeddings=None):
@@ -432,10 +452,12 @@ class DebiasINLPManager(DebiasManager):
         if embeddings is None:
             embeddings = self.non_debiased_embeddings
         embeddings = np.array(embeddings)
+        sorted_dict = sorted(self.dict.items(), key=lambda x: x[1])
         with open(self.EMBEDDING_DEBIASWE_FILE, 'w') as dest_file:
             s = np.shape(embeddings)
             dest_file.write(str(s[0]) + " " + str(s[1]) + "\n")
-            for w, i in self.dict.items():
+            for w, i in sorted_dict:
+                # print(w+", "+str(i))
                 dest_file.write(w + " " + ' '.join(map(str, embeddings[i, :])) + "\n")
 
     def doPCA(self,pairs, num_components=10):
@@ -456,33 +478,36 @@ class DebiasINLPManager(DebiasManager):
         if self.by_pca:
             if self.debias_target_language:
                 with open(self.DEFINITIONAL_FILE_TARGET_LANG, "r") as f:
-                    pairs = json.load(f)
+                    defs = json.load(f)
                 # todo move this to separate function
+                pairs = []
                 with self.tokenizer.as_target_tokenizer():
-                    for i in range(len(pairs)):
-                        a, b = pairs[i]
+                    for i in range(len(defs)):
+                        a, b = defs[i]
                         i_a,i_b = self.tokenizer(a)['input_ids'],self.tokenizer(b)['input_ids']
                         t_a,t_b = self.tokenizer.convert_ids_to_tokens(i_a),self.tokenizer.convert_ids_to_tokens(i_b)
-                        if "</s>" in t_a:
-                            t_a.remove("</s>")
-                        if "▁" in t_a:
-                            t_a.remove("▁")
-                        if "</s>" in t_b:
-                            t_b.remove("</s>")
-                        if "▁" in t_b:
-                            t_b.remove("▁")
-                        pairs[i]=(t_a[0],t_b[0])
+                        self.remove_tokens_to_ignore(t_a)
+                        self.remove_tokens_to_ignore(t_b)
+                        if len(t_a)==1 and len(t_b) == 1:
+                            pairs.append((t_a[0],t_b[0]))
+                        if len(pairs)==10:
+                            break
 
             else:
                 pairs = [("woman", "man"), ("girl", "boy"), ("she", "he"), ("mother", "father"),
                          ("daughter", "son"), ("female", "male"), ("her", "his"),
-                         ("herself", "himself"), ("Mary", "John")]
+                         ("herself", "himself"), ("Mary", "John"),("Queen","King")]
                 if self.tokenizer is not None:
                     for i in range(len(pairs)):
                         a, b = pairs[i]
                         pairs[i] = (self.tokenizer.tokenize(a)[0], self.tokenizer.tokenize(b)[0])
-            gender_vecs = [self.model[p[0]] - self.model[p[1]] for p in pairs]
-            pca = PCA(n_components=1)
+            gender_vecs = []
+            for a, b in pairs:
+                center = (self.model[a]+self.model[b]) / 2
+                gender_vecs.append(self.model[a] - center)
+                gender_vecs.append(self.model[b] - center)
+            # gender_vecs = [self.model[p[0]] - self.model[p[1]] for p in pairs]
+            pca = PCA(n_components=10)
             pca.fit(gender_vecs)
             gender_direction = pca.components_[0]
             # gender_direction = self.doPCA(pairs)
@@ -493,7 +518,18 @@ class DebiasINLPManager(DebiasManager):
                     with self.tokenizer.as_target_tokenizer():
                         he,she =(lang_to_gender_specific_words_map[self.target_lang])[0], \
                                 (lang_to_gender_specific_words_map[self.target_lang])[1]
-                        gender_direction = self.model[self.tokenizer(he)['input_ids'][0]] - self.model[self.tokenizer(she)['input_ids'][0]]
+
+                        ids_he = self.tokenizer(he)['input_ids']
+                        tokens_he = self.tokenizer.convert_ids_to_tokens(ids_he)
+                        self.remove_tokens_to_ignore(tokens_he)
+                        id_he = (self.tokenizer.convert_tokens_to_ids(tokens_he))[0]
+
+                        ids_she = self.tokenizer(she)['input_ids']
+                        tokens_she = self.tokenizer.convert_ids_to_tokens(ids_she)
+                        self.remove_tokens_to_ignore(tokens_she)
+                        id_she = (self.tokenizer.convert_tokens_to_ids(tokens_she))[0]
+
+                        gender_direction = self.model[id_he] - self.model[id_she]
                 else:
                     he, she = (lang_to_gender_specific_words_map['en'])[0], \
                               (lang_to_gender_specific_words_map['en'])[1]
@@ -519,39 +555,46 @@ class DebiasINLPManager(DebiasManager):
         self.model, vecs, words = load_word_vectors(fname=self.EMBEDDING_DEBIASWE_FILE)
 
         # load vectors of the target language from the target language vocabulary
+        if self.TRANSLATION_MODEL == TranslationModelsEnum.EASY_NMT.value:
+            s="_OPUS_MT"
+        elif self.TRANSLATION_MODEL == TranslationModelsEnum.MBART50.value:
+            s="_MBART50"
+        else:
+            s=""
         if self.debias_target_language:
-            lang_model,lang_vecs,lang_words = load_word_vectors(fname=param_dict[LANGUAGE_OPPOSITE_STR_MAP[self.target_lang]]["VOCAB_INLP"])
+            lang_model,lang_vecs,lang_words = load_word_vectors(fname=param_dict[LANGUAGE_OPPOSITE_STR_MAP[self.target_lang]]["VOCAB_INLP"+s])
         # load vectors of English language from the source language vocabulary
         else:
-            lang_model,lang_vecs,lang_words = load_word_vectors(fname=param_dict[LANGUAGE_OPPOSITE_STR_MAP[self.target_lang]]["VOCAB_INLP_EN"])
+            lang_model,lang_vecs,lang_words = load_word_vectors(fname=param_dict[LANGUAGE_OPPOSITE_STR_MAP[self.target_lang]]["VOCAB_INLP_EN"+s])
 
 
         num_vectors_per_class = 3000
         gender_direction = self.get_gender_direction()
-
+        print("gender_direction")
+        print(gender_direction)
         masc_words_and_scores, fem_words_and_scores, neut_words_and_scores = project_on_gender_subspaces(
             gender_direction, lang_model, n=num_vectors_per_class)
 
-        # #check if gender direction needs to be swapped (male is female and female is male)
-        # male_words = [i[0] for i in masc_words_and_scores]
-        # female_words = [i[0] for i in fem_words_and_scores]
-        # swap = False
-        # if self.debias_target_language:
-        #     if self.target_lang =='de':
-        #         if "▁er" in female_words:
-        #             swap = True
-        #     elif self.target_lang =='he':
-        #         if "▁ואתה" in female_words:
-        #             swap = True
-        #     else:
-        #         pass
-        # else:
-        #     if "▁woman" in male_words:
-        #         swap=True
-        # if swap:
-        #     gender_direction = -gender_direction
-        #     masc_words_and_scores, fem_words_and_scores, neut_words_and_scores = \
-        #         project_on_gender_subspaces(gender_direction, lang_model, n=num_vectors_per_class)
+        #check if gender direction needs to be swapped (male is female and female is male)
+        male_words = [i[0] for i in masc_words_and_scores]
+        female_words = [i[0] for i in fem_words_and_scores]
+        swap = False
+        if self.debias_target_language:
+            if self.target_lang =='de':
+                if "▁er" in female_words:
+                    swap = True
+            elif self.target_lang =='he':
+                if "▁ואתה" in female_words:
+                    swap = True
+            else:
+                pass
+        else:
+            if "▁woman" in male_words:
+                swap=True
+        if swap:
+            gender_direction = -gender_direction
+            masc_words_and_scores, fem_words_and_scores, neut_words_and_scores = \
+                project_on_gender_subspaces(gender_direction, lang_model, n=num_vectors_per_class)
 
         masc_words, masc_scores = list(zip(*masc_words_and_scores))
         neut_words, neut_scores = list(zip(*neut_words_and_scores))
@@ -625,14 +668,16 @@ class DebiasINLPManager(DebiasManager):
         # params = {'loss': 'hinge', 'n_jobs': 16, 'penalty': 'l2', 'max_iter': 2500, 'random_state': 0}
         # params = {}
         n = 35
+	# bla
         min_acc = 0
-        # min_acc = 0.5
         is_autoregressive = True
         dropout_rate = 0
         if self.TRANSLATION_MODEL == TranslationModelsEnum.NEMATUS.value:
             input_dim = 256
-        else:
+        elif self.TRANSLATION_MODEL == TranslationModelsEnum.EASY_NMT.value:
             input_dim = 512
+        else:
+            input_dim = 1024
         P, rowspace_projs, Ws = get_debiasing_projection(gender_clf, params, n, input_dim, is_autoregressive, min_acc,
                                                          X_train, Y_train, X_dev, Y_dev,
                                                          Y_train_main=None, Y_dev_main=None,
@@ -670,6 +715,8 @@ class DebiasBlukbasyManager(DebiasManager):
         super().__init__(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         # self.E = None
         self.prepare_data_to_debias()
+        print(self.TRANSLATION_MODEL)
+        # get_and_save_all_vocabs(self.target_lang,self.TRANSLATION_MODEL)
         self.E = we.WordEmbedding(self.EMBEDDING_DEBIASWE_FILE)
 
     def prepare_data_to_debias(self, embeddings=None):
@@ -684,8 +731,9 @@ class DebiasBlukbasyManager(DebiasManager):
             embeddings = embeddings.cpu().data.numpy()
         except:
             embeddings = np.array(embeddings)
+        sorted_dict =sorted(self.dict.items(), key=lambda x: x[1])
         with open(self.EMBEDDING_DEBIASWE_FILE, 'w') as dest_file:
-            for w, i in self.dict.items():
+            for w, i in sorted_dict:
                 dest_file.write(w + " " + ' '.join(map(str, embeddings[i, :])) + "\n")
 
     def get_gender_direction(self):
@@ -716,15 +764,13 @@ class DebiasBlukbasyManager(DebiasManager):
                     for w in defs:
                         i_a,i_b = self.tokenizer(w[0])["input_ids"],self.tokenizer(w[1])["input_ids"]
                         t_a,t_b = self.tokenizer.convert_ids_to_tokens(i_a),self.tokenizer.convert_ids_to_tokens(i_b)
-                        if "</s>" in t_a:
-                            t_a.remove("</s>")
-                        if "▁" in t_a:
-                            t_a.remove("▁")
-                        if "</s>" in t_b:
-                            t_b.remove("</s>")
-                        if "▁" in t_b:
-                            t_b.remove("▁")
-                        tokenized_defs.append([t_a[0],t_b[0]])
+                        self.remove_tokens_to_ignore(t_a)
+                        self.remove_tokens_to_ignore(t_b)
+                        if len(t_a)==1 and len(t_b)==1:
+                            tokenized_defs.append([t_a[0],t_b[0]])
+                        if len(tokenized_defs)==10:
+                            break
+                    print(tokenized_defs)
 
         else:
             with open(DEFINITIONAL_FILE, "r") as f:

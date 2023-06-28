@@ -20,14 +20,15 @@ class Language(Enum):
     HEBREW = 2
     SPANISH = 3
 
-TranslationModels =["NEMATUS","EASY_NMT"]
+TranslationModels =["NEMATUS","EASY_NMT","MBART50"]
 class TranslationModelsEnum(Enum):
     NEMATUS = 0
     EASY_NMT = 1
+    MBART50 = 2
 LANGUAGE_STR_TO_INT_MAP = {'ru': 0,'de':1,'he':2, 'es':3}
 LANGUAGE_STR_MAP = {Language.RUSSIAN: "ru", Language.GERMAN: "de", Language.HEBREW: "he", Language.SPANISH: "es"}
 LANGUAGE_OPPOSITE_STR_MAP = {"ru": Language.RUSSIAN , "de": Language.GERMAN, "he":Language.HEBREW, "es":Language.SPANISH}
-
+LANGUAGE_CODES_MAP = {"en":"en_XX", "es":"es_XX","he":"he_IL","de":"de_DE","ru":"ru_RU"}
 locations_map={"DEBIAS_ENCODER":"_A","BEGINNING_DECODER_DEBIAS":"_B","END_DECODER_DEBIAS":"_C"}
 class DebiasMethod(Enum):
     HARD_DEBIAS = 0
@@ -47,10 +48,14 @@ param_dict = {
             "BLEU_GOLD_DATA": DATA_HOME+"data/" + "en_ru_30.11.20/newstest2019-enru.unesc.tok.tc.bpe.ru",
             "BLEU_GOLD_DATA_NON_TOKENIZED": DATA_HOME+"data/" + "en_ru_30.11.20/newstest2019-enru.ru",
             "BLEU_GOLD_DATA_NON_TOKENIZED_EN": DATA_HOME+"data/" + "en_ru_30.11.20/newstest2019-enru.en",
-            "VOCAB": DATA_HOME+"data/" + "en_ru_30.11.20/ru_vocab.txt",
-            "VOCAB_INLP": DATA_HOME+"data/" + "en_ru_30.11.20/ru_vocab_inlp.txt",
-            "VOCAB_INLP_EN": DATA_HOME+"data/" + "en_ru_30.11.20/en_vocab_inlp.txt",
-            "VOCAB_EN": DATA_HOME+"data/" + "en_ru_30.11.20/en_vocab.txt",
+            "VOCAB_OPUS_MT": DATA_HOME+"data/" + "en_ru_30.11.20/ru_vocab_OPUS_MT.txt",
+            "VOCAB_INLP_OPUS_MT": DATA_HOME+"data/" + "en_ru_30.11.20/ru_vocab_inlp_OPUS_MT.txt",
+            "VOCAB_INLP_EN_OPUS_MT": DATA_HOME+"data/" + "en_ru_30.11.20/en_vocab_inlp_OPUS_MT.txt",
+            "VOCAB_EN_OPUS_MT": DATA_HOME+"data/" + "en_ru_30.11.20/en_vocab_OPUS_MT.txt",
+            "VOCAB_MBART50": DATA_HOME+"data/" + "en_ru_30.11.20/ru_vocab_MBART50.txt",
+            "VOCAB_INLP_MBART50": DATA_HOME+"data/" + "en_ru_30.11.20/ru_vocab_inlp_MBART50.txt",
+            "VOCAB_INLP_EN_MBART50": DATA_HOME+"data/" + "en_ru_30.11.20/en_vocab_inlp_MBART50.txt",
+            "VOCAB_EN_MBART50": DATA_HOME+"data/" + "en_ru_30.11.20/en_vocab_MBART50.txt",
         },
     Language.GERMAN:
         {
@@ -59,10 +64,14 @@ param_dict = {
             "BLEU_GOLD_DATA": DATA_HOME +"data/" + "en_de_5.8/newstest2012.unesc.tok.tc.bpe.de",
             "BLEU_GOLD_DATA_NON_TOKENIZED": DATA_HOME +"data/" + "en_de_5.8/newstest2012.de",
             "BLEU_GOLD_DATA_NON_TOKENIZED_EN": DATA_HOME +"data/" + "en_de_5.8/newstest2012.en",
-            "VOCAB": DATA_HOME +"data/" + "en_de_5.8/de_vocab.txt",
-            "VOCAB_INLP": DATA_HOME +"data/" + "en_de_5.8/de_vocab_inlp.txt",
-            "VOCAB_INLP_EN": DATA_HOME +"data/" + "en_de_5.8/en_vocab_inlp.txt",
-            "VOCAB_EN": DATA_HOME +"data/" + "en_de_5.8/en_vocab.txt",
+            "VOCAB_OPUS_MT": DATA_HOME +"data/" + "en_de_5.8/de_vocab_OPUS_MT.txt",
+            "VOCAB_INLP_OPUS_MT": DATA_HOME +"data/" + "en_de_5.8/de_vocab_inlp_OPUS_MT.txt",
+            "VOCAB_INLP_EN_OPUS_MT": DATA_HOME +"data/" + "en_de_5.8/en_vocab_inlp_OPUS_MT.txt",
+            "VOCAB_EN_OPUS_MT": DATA_HOME +"data/" + "en_de_5.8/en_vocab_OPUS_MT.txt",
+            "VOCAB_MBART50": DATA_HOME +"data/" + "en_de_5.8/de_vocab_MBART50.txt",
+            "VOCAB_INLP_MBART50": DATA_HOME +"data/" + "en_de_5.8/de_vocab_inlp_MBART50.txt",
+            "VOCAB_INLP_EN_MBART50": DATA_HOME +"data/" + "en_de_5.8/en_vocab_inlp_MBART50.txt",
+            "VOCAB_EN_MBART50": DATA_HOME +"data/" + "en_de_5.8/en_vocab_MBART50.txt",
 
         },
     Language.HEBREW:
@@ -72,10 +81,14 @@ param_dict = {
             "BLEU_GOLD_DATA": DATA_HOME +"data/" + "en_he_20.07.21//dev.unesc.tok.bpe.he",
             "BLEU_GOLD_DATA_NON_TOKENIZED": DATA_HOME +"data/" + "en_he_20.07.21//dev.he",
             "BLEU_GOLD_DATA_NON_TOKENIZED_EN": DATA_HOME +"data/" + "en_he_20.07.21//dev.en",
-            "VOCAB": DATA_HOME +"data/" + "en_he_20.07.21/he_vocab.txt",
-            "VOCAB_INLP": DATA_HOME +"data/" + "en_he_20.07.21/he_vocab_inlp.txt",
-            "VOCAB_INLP_EN": DATA_HOME +"data/" + "en_he_20.07.21/en_vocab_inlp.txt",
-            "VOCAB_EN": DATA_HOME +"data/" + "en_he_20.07.21/en_vocab.txt",
+            "VOCAB_OPUS_MT": DATA_HOME +"data/" + "en_he_20.07.21/he_vocab_OPUS_MT.txt",
+            "VOCAB_INLP_OPUS_MT": DATA_HOME +"data/" + "en_he_20.07.21/he_vocab_inlp_OPUS_MT.txt",
+            "VOCAB_INLP_EN_OPUS_MT": DATA_HOME +"data/" + "en_he_20.07.21/en_vocab_inlp_OPUS_MT.txt",
+            "VOCAB_EN_OPUS_MT": DATA_HOME +"data/" + "en_he_20.07.21/en_vocab_OPUS_MT.txt",
+            "VOCAB_MBART50": DATA_HOME +"data/" + "en_he_20.07.21/he_vocab_MBART50.txt",
+            "VOCAB_INLP_MBART50": DATA_HOME +"data/" + "en_he_20.07.21/he_vocab_inlp_MBART50.txt",
+            "VOCAB_INLP_EN_MBART50": DATA_HOME +"data/" + "en_he_20.07.21/en_vocab_inlp_MBART50.txt",
+            "VOCAB_EN_MBART50": DATA_HOME +"data/" + "en_he_20.07.21/en_vocab_MBART50.txt",
 
         },
     Language.SPANISH:
@@ -85,10 +98,14 @@ param_dict = {
             "BLEU_GOLD_DATA": DATA_HOME +"data/" + "en_es//books.es",
             "BLEU_GOLD_DATA_NON_TOKENIZED": DATA_HOME +"data/" + "en_es//books.es",
             "BLEU_GOLD_DATA_NON_TOKENIZED_EN": DATA_HOME +"data/" + "en_es//books.en",
-            "VOCAB":  DATA_HOME +"data/" + "en_es/es_vocab.txt",
-            "VOCAB_INLP":DATA_HOME +"data/" + "en_es/es_vocab_inlp.txt",
-            "VOCAB_INLP_EN":DATA_HOME +"data/" + "en_es/en_vocab_inlp.txt",
-            "VOCAB_EN":DATA_HOME +"data/" + "en_es/en_vocab.txt",
+            "VOCAB_OPUS_MT":  DATA_HOME +"data/" + "en_es/es_vocab_OPUS_MT.txt",
+            "VOCAB_INLP_OPUS_MT":DATA_HOME +"data/" + "en_es/es_vocab_inlp_OPUS_MT.txt",
+            "VOCAB_INLP_EN_OPUS_MT":DATA_HOME +"data/" + "en_es/en_vocab_inlp_OPUS_MT.txt",
+            "VOCAB_EN_OPUS_MT":DATA_HOME +"data/" + "en_es/en_vocab_OPUS_MT.txt",
+            "VOCAB_MBART50":  DATA_HOME +"data/" + "en_es/es_vocab_MBART50.txt",
+            "VOCAB_INLP_MBART50":DATA_HOME +"data/" + "en_es/es_vocab_inlp_MBART50.txt",
+            "VOCAB_INLP_EN_MBART50":DATA_HOME +"data/" + "en_es/en_vocab_inlp_MBART50.txt",
+            "VOCAB_EN_MBART50":DATA_HOME +"data/" + "en_es/en_vocab_MBART50.txt",
         }
 }
 
