@@ -1,6 +1,9 @@
+#!/bin/bash
 set -e
 #module load tensorflow/2.0.0
-source /cs/usr/bareluz/gabi_labs/nematus_clean/debias_files/src/venv_test/bin/activate
+#source /cs/usr/bareluz/gabi_labs/nematus_clean/debias_files/src/venv_test/bin/activate
+source /cs/usr/bareluz/gabi_labs/miniconda3/etc/profile.d/conda.sh
+conda activate /cs/usr/bareluz/gabi_labs/miniconda3/envs/conda_env
 export snapless_dir=/cs/snapless/gabis/bareluz
 #source ${snapless_dir}/nematus_env3/bin/activate
 export src_language=en

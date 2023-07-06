@@ -136,6 +136,7 @@ if [ $translate = true ]; then
          -k 12 -n -o "${outputh_path_non_debiased}" -c "${config_non_debiased}"
   elif [ $model = 1 ]; then
     echo "#################### translate anti debias ####################"
+    echo "python ${debias_files_dir}/src/translate_easynmt.py -i ${input_path} -o ${outputh_path_debiased} -c ${config_debiased}"
       python ${debias_files_dir}/src/translate_easynmt.py \
            -i "$input_path" \
            -o "${outputh_path_debiased}" \

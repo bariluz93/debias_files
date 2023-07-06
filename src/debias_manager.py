@@ -29,6 +29,12 @@ from sklearn.svm import LinearSVC, SVC
 from sklearn.linear_model import SGDClassifier, Perceptron, LogisticRegression, PassiveAggressiveClassifier
 import copy
 
+import torch
+from sklearn.linear_model import LogisticRegression
+import os
+os.environ['TRANSFORMERS_CACHE'] = '/cs/snapless/gabis/bareluz'
+from concept_erasure import ConceptEraser
+
 # sys.path.append("..")  # Adds higher directory to python modules path.
 sys.path.append("../../debias_files")  # Adds higher directory to python modules path.
 
@@ -668,7 +674,6 @@ class DebiasINLPManager(DebiasManager):
         # params = {'loss': 'hinge', 'n_jobs': 16, 'penalty': 'l2', 'max_iter': 2500, 'random_state': 0}
         # params = {}
         n = 35
-	# bla
         min_acc = 0
         is_autoregressive = True
         dropout_rate = 0
@@ -808,6 +813,271 @@ class DebiasBlukbasyManager(DebiasManager):
         print("Saving to file...")
         self.save(self.E.vecs)
         return self.E.vecs
+
+class DebiasLEACE(DebiasManager):
+    def __init__(self, consts_config_str, non_debiased_embeddings=None, tokenizer=None, debias_target_language=False):
+        super().__init__(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
+        self.prepare_data_to_debias()
+        get_and_save_all_vocabs(self.target_lang, self.TRANSLATION_MODEL)
+        self.by_pca = False
+    def get_gender_direction(self):
+        """
+        :return: a vector represents the gender direction
+        """
+        if self.by_pca:
+            if self.debias_target_language:
+                with open(self.DEFINITIONAL_FILE_TARGET_LANG, "r") as f:
+                    defs = json.load(f)
+                # todo move this to separate function
+                pairs = []
+                with self.tokenizer.as_target_tokenizer():
+                    for i in range(len(defs)):
+                        a, b = defs[i]
+                        i_a,i_b = self.tokenizer(a)['input_ids'],self.tokenizer(b)['input_ids']
+                        t_a,t_b = self.tokenizer.convert_ids_to_tokens(i_a),self.tokenizer.convert_ids_to_tokens(i_b)
+                        self.remove_tokens_to_ignore(t_a)
+                        self.remove_tokens_to_ignore(t_b)
+                        if len(t_a)==1 and len(t_b) == 1:
+                            pairs.append((t_a[0],t_b[0]))
+                        if len(pairs)==10:
+                            break
+
+            else:
+                pairs = [("woman", "man"), ("girl", "boy"), ("she", "he"), ("mother", "father"),
+                         ("daughter", "son"), ("female", "male"), ("her", "his"),
+                         ("herself", "himself"), ("Mary", "John"),("Queen","King")]
+                if self.tokenizer is not None:
+                    for i in range(len(pairs)):
+                        a, b = pairs[i]
+                        pairs[i] = (self.tokenizer.tokenize(a)[0], self.tokenizer.tokenize(b)[0])
+            gender_vecs = []
+            for a, b in pairs:
+                center = (self.model[a]+self.model[b]) / 2
+                gender_vecs.append(self.model[a] - center)
+                gender_vecs.append(self.model[b] - center)
+            # gender_vecs = [self.model[p[0]] - self.model[p[1]] for p in pairs]
+            pca = PCA(n_components=10)
+            pca.fit(gender_vecs)
+            gender_direction = pca.components_[0]
+            # gender_direction = self.doPCA(pairs)
+
+        else:
+            if self.tokenizer is not None:
+                if self.debias_target_language:
+                    with self.tokenizer.as_target_tokenizer():
+                        he,she =(lang_to_gender_specific_words_map[self.target_lang])[0], \
+                                (lang_to_gender_specific_words_map[self.target_lang])[1]
+
+                        ids_he = self.tokenizer(he)['input_ids']
+                        tokens_he = self.tokenizer.convert_ids_to_tokens(ids_he)
+                        self.remove_tokens_to_ignore(tokens_he)
+                        id_he = (self.tokenizer.convert_tokens_to_ids(tokens_he))[0]
+
+                        ids_she = self.tokenizer(she)['input_ids']
+                        tokens_she = self.tokenizer.convert_ids_to_tokens(ids_she)
+                        self.remove_tokens_to_ignore(tokens_she)
+                        id_she = (self.tokenizer.convert_tokens_to_ids(tokens_she))[0]
+
+                        gender_direction = self.model[id_he] - self.model[id_she]
+                else:
+                    he, she = (lang_to_gender_specific_words_map['en'])[0], \
+                              (lang_to_gender_specific_words_map['en'])[1]
+                    gender_direction = self.model[self.tokenizer.tokenize(he)[0]] - \
+                                       self.model[self.tokenizer.tokenize(she)[0]]
+
+
+            else:
+                gender_direction = self.model["he"] - self.model["she"]
+        return gender_direction
+    def prepare_data_to_debias(self, embeddings=None):
+        """
+        given path to dictionary, the path to the embedding table saved in get_embedding_table() and the file name to save the data,
+        it prepares the embedding table in the format of <word> <embedding>/n , this is the format that debias() in debiaswe, uses.
+        saves the embedding with the desired format to self.EMBEDDING_DEBIASWE_FILE
+        """
+        if embeddings is None:
+            embeddings = self.non_debiased_embeddings
+        embeddings = np.array(embeddings)
+        sorted_dict = sorted(self.dict.items(), key=lambda x: x[1])
+        with open(self.EMBEDDING_DEBIASWE_FILE, 'w') as dest_file:
+            s = np.shape(embeddings)
+            dest_file.write(str(s[0]) + " " + str(s[1]) + "\n")
+            for w, i in sorted_dict:
+                # print(w+", "+str(i))
+                dest_file.write(w + " " + ' '.join(map(str, embeddings[i, :])) + "\n")
+    def debias_leace_preparation(self):
+        """
+        prepares the classifier model, and the embeddings with their classification as male, female and neutral
+        and separated to train dev and test
+        :return:
+        X_dev, Y_dev, X_train, Y_train, X_test, Y_test: the splitted embeddings and their tags
+        all_significantly_biased_vecs, all_significantly_biased_labels: a set of significally biased embeddings
+        vecs: the embeddings
+        """
+        # load vectors of the entire dictionary
+        self.model, vecs, words = load_word_vectors(fname=self.EMBEDDING_DEBIASWE_FILE)
+
+        # load vectors of the target language from the target language vocabulary
+        if self.TRANSLATION_MODEL == TranslationModelsEnum.EASY_NMT.value:
+            s="_OPUS_MT"
+        elif self.TRANSLATION_MODEL == TranslationModelsEnum.MBART50.value:
+            s="_MBART50"
+        else:
+            s=""
+        if self.debias_target_language:
+            lang_model,lang_vecs,lang_words = load_word_vectors(fname=param_dict[LANGUAGE_OPPOSITE_STR_MAP[self.target_lang]]["VOCAB_INLP"+s])
+        # load vectors of English language from the source language vocabulary
+        else:
+            lang_model,lang_vecs,lang_words = load_word_vectors(fname=param_dict[LANGUAGE_OPPOSITE_STR_MAP[self.target_lang]]["VOCAB_INLP_EN"+s])
+
+
+        num_vectors_per_class = 3000
+        gender_direction = self.get_gender_direction()
+        print("gender_direction")
+        print(gender_direction)
+        masc_words_and_scores, fem_words_and_scores, neut_words_and_scores = project_on_gender_subspaces(
+            gender_direction, lang_model, n=num_vectors_per_class)
+
+        #check if gender direction needs to be swapped (male is female and female is male)
+        male_words = [i[0] for i in masc_words_and_scores]
+        female_words = [i[0] for i in fem_words_and_scores]
+        swap = False
+        if self.debias_target_language:
+            if self.target_lang =='de':
+                if "▁er" in female_words:
+                    swap = True
+            elif self.target_lang =='he':
+                if "▁ואתה" in female_words:
+                    swap = True
+            else:
+                pass
+        else:
+            if "▁woman" in male_words:
+                swap=True
+        if swap:
+            gender_direction = -gender_direction
+            masc_words_and_scores, fem_words_and_scores, neut_words_and_scores = \
+                project_on_gender_subspaces(gender_direction, lang_model, n=num_vectors_per_class)
+
+        masc_words, masc_scores = list(zip(*masc_words_and_scores))
+        neut_words, neut_scores = list(zip(*neut_words_and_scores))
+        fem_words, fem_scores = list(zip(*fem_words_and_scores))
+
+        if self.debias_target_language:
+            print("debiasing target language")
+            if self.target_lang == 'he':
+                professions = self.hebrew_professions
+            elif self.target_lang == 'de':
+                professions = self.german_professions
+            elif self.target_lang == 'es':
+                professions = self.spanish_professions
+            else:
+                print("no professions list for language " + self.target_lang + " debiasing source language instead")
+                professions = self.professions
+        else:
+            professions = self.professions
+
+        for p in professions:
+            if p not in masc_words and p not in fem_words:
+                print(p+" not in masc words and fem words")
+                bias = np.dot(self.model[p], gender_direction)
+                if bias >0:
+                    masc_words.append(p)
+                    print(p+" was tagged as male")
+                else:
+                    fem_words.append(p)
+                    print(p + " was tagged as female")
+        masc_vecs, fem_vecs = get_vectors(masc_words, lang_model), get_vectors(fem_words, lang_model)
+
+        n = min(3000, num_vectors_per_class)
+        all_significantly_biased_words = masc_words[:n] + fem_words[:n]
+        all_significantly_biased_vecs = np.concatenate((masc_vecs[:n], fem_vecs[:n]))
+        all_significantly_biased_labels = np.concatenate((np.ones(n, dtype=int),
+                                                          np.zeros(n, dtype=int)))
+
+        all_significantly_biased_words, all_significantly_biased_vecs, all_significantly_biased_labels = sklearn.utils.shuffle(
+            all_significantly_biased_words, all_significantly_biased_vecs, all_significantly_biased_labels)
+        # print(np.random.choice(masc_words, size = 75))
+        print("TOP MASC")
+        print(masc_words[:50])
+        # print("LAST MASC")
+        # print(masc_words[-120:])
+        print("-------------------------")
+        # print(np.random.choice(fem_words, size = 75))
+        print("TOP FEM")
+        print(fem_words[:50])
+        # print("LAST FEM")
+        # print(fem_words[-120:])
+        print("-------------------------")
+        # print(np.random.choice(neut_words, size = 75))
+        print(neut_words[:50])
+
+        print(masc_scores[:10])
+        print(masc_scores[-10:])
+        print(neut_scores[:10])
+
+        random.seed(0)
+        np.random.seed(0)
+
+
+
+        X = np.concatenate((masc_vecs, fem_vecs), axis=0)
+        y_masc = np.ones(masc_vecs.shape[0], dtype=int)
+        y_fem = np.zeros(fem_vecs.shape[0], dtype=int)
+        y = np.concatenate((y_masc, y_fem))
+        words_in_order = np.concatenate((masc_words, fem_words))
+        return X,y, vecs,words,words_in_order
+
+    def debias_embedding_table(self):
+        X,Y,vecs,words,words_in_order=self.debias_leace_preparation()
+        X_t = torch.from_numpy(X)
+        Y_t = torch.from_numpy(Y)
+
+        # Logistic regression does learn something before concept erasure
+        real_lr = LogisticRegression(max_iter=1000).fit(X, Y)
+        beta = torch.from_numpy(real_lr.coef_)
+        assert beta.norm(p=torch.inf) > 0.1
+
+        eraser = ConceptEraser.fit(X_t, Y_t)
+        X_ = eraser(X_t)
+
+        # But learns nothing after
+        null_lr = LogisticRegression(max_iter=1000, tol=0.0).fit(X_.numpy(), Y)
+        beta = torch.from_numpy(null_lr.coef_)
+        assert beta.norm(p=torch.inf) < 1e-4
+
+
+        if self.debias_target_language:
+            print("debiasing target language")
+            with self.tokenizer.as_target_tokenizer():
+                if self.target_lang == 'he':
+                    professions = self.hebrew_professions
+                elif self.target_lang == 'de':
+                    professions = self.german_professions
+                elif self.target_lang == 'es':
+                    professions =  self.spanish_professions
+                # elif self.target_lang == 'ru':
+                #     professions_indices = self.tokenizer.convert_tokens_to_ids(self.russian_professions)
+                else:
+                    print("no professions list for language " + self.target_lang + " debiasing source language instead")
+                    professions = self.professions
+
+        else:
+            professions = self.professions
+        debiased_embeddings = copy.deepcopy(vecs)
+        if self.WORDS_TO_DEBIAS == WordsToDebias.ALL_VOCAB.value:
+            print("LEACE debias doesn't support debias all words")
+            exit(1)
+        else:
+            for p in professions:
+                p_idx = self.tokenizer.convert_tokens_to_ids(p)
+                p_idx_debiased = words_in_order.index(p)
+                debiased_embeddings[p_idx] = X_[p_idx_debiased]
+
+        ### save embeddings to file, used only for Nematus
+        self.save(debiased_embeddings)
+
+        # todo change only professions in the embedding table
 
 # if __name__ == '__main__':
 #     print("hello world")
