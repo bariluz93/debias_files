@@ -23,8 +23,8 @@ DELTA_G ="Delta G"
 BLEU = "Bleu"
 
 INLP = "INLP"
-
 HARD_DEBIAS = "Hard Debias"
+LEACE= "LEACE"
 
 LANGUAGES = LANGUAGE_STR_MAP.values()
 LANGUAGES = list(LANGUAGES)
@@ -161,7 +161,7 @@ def get_all_results(result_files):
             ### get delta g results
             loc_delta_g = []
             if results[language][GENDER_RESULTS][(DEBIAS_METHODS[0], loc)]["non_debiased"] is None:
-                loc_delta_g = [None,None,None,None,None,None,None,None,None,]
+                loc_delta_g = [None,None,None,None,None,None,None,None,None,None,None,None]
             else:
                 orig_f1_male = results[language][GENDER_RESULTS][(DEBIAS_METHODS[0], loc)]["non_debiased"][F1_MALE_IDX]
                 orig_f1_female = results[language][GENDER_RESULTS][(DEBIAS_METHODS[0], loc)]["non_debiased"][F1_FEMALE_IDX]
@@ -193,7 +193,7 @@ def get_all_results(result_files):
 
 def write_professions_results_to_csv(professions_results, model):
     headers = [None, "Russian", None, "German", None, "Hebrew", None]
-    sub_headers = [None] + [HARD_DEBIAS, INLP] * 3
+    sub_headers = [None] + [HARD_DEBIAS, INLP,LEACE] * 3
     index = [[p] for p in professions_results.keys()]
     data = np.append(index, list(professions_results.values()), axis=1)
     now = datetime.now()
@@ -224,7 +224,7 @@ def write_results_to_dir(results, model,words_to_debias):
 
 def write_results_to_csv_f1_delta_g(results,path):
     # writes the current language results to a csv file given by path
-    headers = [None,"Orig",None,None,HARD_DEBIAS,None,None,INLP,None,None]
+    headers = [None,"Orig",None,None,HARD_DEBIAS,None,None,INLP,None,None,LEACE]
     sub_headers = [None] + ["F1 Male", "F1 Female", "Delta G"] * 3
     index = [["Encoder Input"],["Decoder Input"],["Decoder Output"],["Encoder Input+Decoder Input"],
              ["Encoder Input+Decoder Output"],["Decoder Input+Decoder Output"],["Encoder Input+Decoder Input+Decoder Output"]]
@@ -236,7 +236,7 @@ def write_results_to_csv_f1_delta_g(results,path):
         writer.writerows(data)
 def write_results_to_csv(results,path):
     # writes the current language results to a csv file given by path
-    headers = [None,"Orig",HARD_DEBIAS,INLP]
+    headers = [None,"Orig",HARD_DEBIAS,INLP,LEACE]
     # sub_headers = [None] + ["Bleu", "delta Bleu", "anti accuracy", "delta anti accuracy"] * 3
     index = [["Encoder Input"],["Decoder Input"],["Decoder Output"],["Encoder Input+Decoder Input"],
              ["Encoder Input+Decoder Output"],["Decoder Input+Decoder Output"],["Encoder Input+Decoder Input+Decoder Output"]]

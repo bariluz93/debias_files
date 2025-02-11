@@ -33,6 +33,7 @@ locations_map={"DEBIAS_ENCODER":"_A","BEGINNING_DECODER_DEBIAS":"_B","END_DECODE
 class DebiasMethod(Enum):
     HARD_DEBIAS = 0
     INLP = 1
+    LEACE = 2
 class WordsToDebias(Enum):
     ALL_VOCAB = 0
     ONE_TOKEN_PROFESSIONS = 1

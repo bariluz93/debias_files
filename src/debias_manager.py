@@ -112,7 +112,6 @@ class DebiasManager():
         else:
             self.non_debiased_embeddings = non_debiased_embeddings
 
-
     @staticmethod
     def get_manager_instance(consts_config_str, non_debiased_embeddings=None, tokenizer=None,
                              debias_target_language=False):
@@ -127,6 +126,8 @@ class DebiasManager():
             return DebiasBlukbasyManager(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         elif DebiasMethod(DEBIAS_METHOD) == DebiasMethod.INLP:
             return DebiasINLPManager(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
+        elif DebiasMethod(DEBIAS_METHOD) == DebiasMethod.LEACE:
+            return DebiasLEACEManager(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         else:
             raise Exception("the debias method is incorrect")
 
@@ -153,6 +154,10 @@ class DebiasManager():
         return not lines_count.__contains__(0)
 
     def _tokenize_professions(self,tokenizer,professions):
+        lowers = []
+        for p in professions:
+            lowers.append(p.lower())
+        professions+=lowers
         tokenized_professions = []
         # if we debias the decoder we use decoder's tokenizer
         if self.debias_target_language:
@@ -167,7 +172,8 @@ class DebiasManager():
                         if len(tokens) == 1:
                             tokenized_professions.append(tokens[0])
 
-                        indices = tokenizer(p.lower())['input_ids']
+                        indices = tokenizer(p)['input_ids']
+                        # indices = tokenizer(p.lower())['input_ids']
                         tokens = tokenizer.convert_ids_to_tokens(indices)
                         self.remove_tokens_to_ignore(tokens)
                         if len(tokens) == 1:
@@ -447,7 +453,7 @@ class DebiasINLPManager(DebiasManager):
         super().__init__(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         self.prepare_data_to_debias()
         get_and_save_all_vocabs(self.target_lang,self.TRANSLATION_MODEL)
-        self.by_pca = False
+        self.by_pca = True
 
     def prepare_data_to_debias(self, embeddings=None):
         """
@@ -576,8 +582,6 @@ class DebiasINLPManager(DebiasManager):
 
         num_vectors_per_class = 3000
         gender_direction = self.get_gender_direction()
-        print("gender_direction")
-        print(gender_direction)
         masc_words_and_scores, fem_words_and_scores, neut_words_and_scores = project_on_gender_subspaces(
             gender_direction, lang_model, n=num_vectors_per_class)
 
@@ -721,7 +725,7 @@ class DebiasBlukbasyManager(DebiasManager):
         # self.E = None
         self.prepare_data_to_debias()
         print(self.TRANSLATION_MODEL)
-        # get_and_save_all_vocabs(self.target_lang,self.TRANSLATION_MODEL)
+        get_and_save_all_vocabs(self.target_lang,self.TRANSLATION_MODEL)
         self.E = we.WordEmbedding(self.EMBEDDING_DEBIASWE_FILE)
 
     def prepare_data_to_debias(self, embeddings=None):
@@ -814,11 +818,11 @@ class DebiasBlukbasyManager(DebiasManager):
         self.save(self.E.vecs)
         return self.E.vecs
 
-class DebiasLEACE(DebiasManager):
+class DebiasLEACEManager(DebiasManager):
     def __init__(self, consts_config_str, non_debiased_embeddings=None, tokenizer=None, debias_target_language=False):
         super().__init__(consts_config_str, non_debiased_embeddings, tokenizer, debias_target_language)
         self.prepare_data_to_debias()
-        get_and_save_all_vocabs(self.target_lang, self.TRANSLATION_MODEL)
+        # get_and_save_all_vocabs(self.target_lang, self.TRANSLATION_MODEL)
         self.by_pca = False
     def get_gender_direction(self):
         """
@@ -933,8 +937,6 @@ class DebiasLEACE(DebiasManager):
 
         num_vectors_per_class = 3000
         gender_direction = self.get_gender_direction()
-        print("gender_direction")
-        print(gender_direction)
         masc_words_and_scores, fem_words_and_scores, neut_words_and_scores = project_on_gender_subspaces(
             gender_direction, lang_model, n=num_vectors_per_class)
 
@@ -977,17 +979,17 @@ class DebiasLEACE(DebiasManager):
         else:
             professions = self.professions
 
-        for p in professions:
-            if p not in masc_words and p not in fem_words:
-                print(p+" not in masc words and fem words")
-                bias = np.dot(self.model[p], gender_direction)
-                if bias >0:
-                    masc_words.append(p)
-                    print(p+" was tagged as male")
-                else:
-                    fem_words.append(p)
-                    print(p + " was tagged as female")
-        masc_vecs, fem_vecs = get_vectors(masc_words, lang_model), get_vectors(fem_words, lang_model)
+        # for p in professions:
+        #     if p not in masc_words and p not in fem_words:
+        #         print(p+" not in masc words and fem words")
+        #         bias = np.dot(self.model[p], gender_direction)
+        #         if bias >0:
+        #             masc_words=masc_words+(p,)
+        #             print(p+" was tagged as male with bias "+str(bias))
+        #         else:
+        #             fem_words = fem_words + (p,)
+        #             print(p + " was tagged as female with bias "+str(bias))
+        masc_vecs, fem_vecs ,profession_vecs= get_vectors(masc_words, lang_model), get_vectors(fem_words, lang_model),get_vectors(professions, lang_model)
 
         n = min(3000, num_vectors_per_class)
         all_significantly_biased_words = masc_words[:n] + fem_words[:n]
@@ -1025,59 +1027,63 @@ class DebiasLEACE(DebiasManager):
         y_masc = np.ones(masc_vecs.shape[0], dtype=int)
         y_fem = np.zeros(fem_vecs.shape[0], dtype=int)
         y = np.concatenate((y_masc, y_fem))
-        words_in_order = np.concatenate((masc_words, fem_words))
-        return X,y, vecs,words,words_in_order
+        # words_in_order = np.concatenate((masc_words, fem_words))
+        return X,y, vecs,words,profession_vecs,professions
 
     def debias_embedding_table(self):
-        X,Y,vecs,words,words_in_order=self.debias_leace_preparation()
+        X,Y,vecs,words,profession_vecs,professions=self.debias_leace_preparation()
         X_t = torch.from_numpy(X)
         Y_t = torch.from_numpy(Y)
 
         # Logistic regression does learn something before concept erasure
         real_lr = LogisticRegression(max_iter=1000).fit(X, Y)
         beta = torch.from_numpy(real_lr.coef_)
+        print("beta.norm(p=torch.inf) before")
+        print(beta.norm(p=torch.inf))
         assert beta.norm(p=torch.inf) > 0.1
 
         eraser = ConceptEraser.fit(X_t, Y_t)
-        X_ = eraser(X_t)
+        profession_vecs_ = eraser(torch.from_numpy(profession_vecs))
 
         # But learns nothing after
-        null_lr = LogisticRegression(max_iter=1000, tol=0.0).fit(X_.numpy(), Y)
-        beta = torch.from_numpy(null_lr.coef_)
-        assert beta.norm(p=torch.inf) < 1e-4
+        # null_lr = LogisticRegression(max_iter=1000, tol=0.0).fit(X_.numpy(), Y)
+        # beta = torch.from_numpy(null_lr.coef_)
+        # print("beta.norm(p=torch.inf) after")
+        # print(beta.norm(p=torch.inf))
+        # assert beta.norm(p=torch.inf) < 1e-4
 
 
-        if self.debias_target_language:
-            print("debiasing target language")
-            with self.tokenizer.as_target_tokenizer():
-                if self.target_lang == 'he':
-                    professions = self.hebrew_professions
-                elif self.target_lang == 'de':
-                    professions = self.german_professions
-                elif self.target_lang == 'es':
-                    professions =  self.spanish_professions
-                # elif self.target_lang == 'ru':
-                #     professions_indices = self.tokenizer.convert_tokens_to_ids(self.russian_professions)
-                else:
-                    print("no professions list for language " + self.target_lang + " debiasing source language instead")
-                    professions = self.professions
-
-        else:
-            professions = self.professions
+        # if self.debias_target_language:
+        #     print("debiasing target language")
+        #     with self.tokenizer.as_target_tokenizer():
+        #         if self.target_lang == 'he':
+        #             professions = self.hebrew_professions
+        #         elif self.target_lang == 'de':
+        #             professions = self.german_professions
+        #         elif self.target_lang == 'es':
+        #             professions =  self.spanish_professions
+        #         # elif self.target_lang == 'ru':
+        #         #     professions_indices = self.tokenizer.convert_tokens_to_ids(self.russian_professions)
+        #         else:
+        #             print("no professions list for language " + self.target_lang + " debiasing source language instead")
+        #             professions = self.professions
+        #
+        # else:
+        #     professions = self.professions
         debiased_embeddings = copy.deepcopy(vecs)
         if self.WORDS_TO_DEBIAS == WordsToDebias.ALL_VOCAB.value:
             print("LEACE debias doesn't support debias all words")
             exit(1)
         else:
-            for p in professions:
+            for i in range(len(professions)):
+                p = professions[i]
                 p_idx = self.tokenizer.convert_tokens_to_ids(p)
-                p_idx_debiased = words_in_order.index(p)
-                debiased_embeddings[p_idx] = X_[p_idx_debiased]
+                debiased_embeddings[p_idx] = profession_vecs_[i]
 
         ### save embeddings to file, used only for Nematus
         self.save(debiased_embeddings)
+        return debiased_embeddings
 
-        # todo change only professions in the embedding table
 
 # if __name__ == '__main__':
 #     print("hello world")

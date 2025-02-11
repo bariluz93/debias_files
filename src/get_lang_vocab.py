@@ -10,18 +10,20 @@ tokenizer_mbart50 = "facebook/mbart-large-50-one-to-many-mmt"
 # tokenizer_mbart50 = "facebook/m2m100_1.2B"
 
 
-def get_words_from_differentd_datasets_target_lang(lang):
+def get_words_from_different_datasets_target_lang(lang):
     words=[]
     with open(DATA_HOME+"professions_annotations/"+lang+"_professions.txt",'r') as f:
         words += f.readlines()
     with open(DATA_HOME+"professions_annotations/"+lang+"_definitional_pairs.json") as f:
         data = json.load(f)
         words += sum(data, [])
+    lowers = [w.lower() for w in words]
     with open(DATA_HOME+lang+"_words.txt",'w') as f:
+        f.write(" ".join(words+lowers))
         f.write(" ".join(words))
     return DATA_HOME+lang+"_words.txt"
 
-def get_words_from_differentd_atasets_en(EN_NEUTRAL_MT_GENDER):
+def get_words_from_different_datasets_en(EN_NEUTRAL_MT_GENDER):
     words = []
     with open(DATA_HOME+"inlp_data/vecs.filtered.txt",'r') as f:
         lines = f.readlines()
@@ -49,8 +51,9 @@ def get_words_from_differentd_atasets_en(EN_NEUTRAL_MT_GENDER):
     with open(EN_NEUTRAL_MT_GENDER, 'r') as f:
         lines = f.readlines()
         words += [(line.split("\t")[-1]).strip() for line in lines]
-
+    lowers = [w.lower() for w in words]
     with open(DATA_HOME+"english_words.txt",'w') as f:
+        f.write(" ".join(words+lowers))
         f.write(" ".join(words))
     return DATA_HOME+"english_words.txt"
 
@@ -141,15 +144,15 @@ def get_and_save_all_vocabs(lang,translation_model):
                 ", 'COLLECT_EMBEDDING_TABLE': 0, 'DEBIAS_METHOD': 0, 'TRANSLATION_MODEL': "+str(translation_model)+", " \
                 "'DEBIAS_ENCODER': 0, 'BEGINNING_DECODER_DEBIAS': 0, 'END_DECODER_DEBIAS': 0, 'WORDS_TO_DEBIAS': 0}"
     _, _, _, _, _, EN_NEUTRAL_MT_GENDER = get_evaluate_gender_files(config)
-    en_dataset_paths = [DATA_HOME+"data/"+'en_ru_30.11.20/newstest2019-enru.en',
-                        DATA_HOME+"data/"+'en_de_5.8/newstest2012.en',
-                        DATA_HOME+"data/"+'en_he_20.07.21/dev.en',
-                        DATA_HOME+"anti_data/"+'anti.en',
-                        DATA_HOME+"data/"+'en_es/books.en',
-                        get_words_from_differentd_atasets_en(EN_NEUTRAL_MT_GENDER)]
+    en_dataset_paths = [DATA_HOME +"data/" +'en_ru_30.11.20/newstest2019-enru.en',
+                        DATA_HOME +"data/" +'en_de_5.8/newstest2012.en',
+                        DATA_HOME +"data/" +'en_he_20.07.21/dev.en',
+                        DATA_HOME +"anti_data/" +'anti.en',
+                        DATA_HOME +"data/" +'en_es/books.en',
+                        get_words_from_different_datasets_en(EN_NEUTRAL_MT_GENDER)]
     _, _, _, _, embedding_debiaswe, _, _,_=get_debias_files_from_config(config)
 
-    files = [param_dict[LANGUAGE_OPPOSITE_STR_MAP[lang]]["BLEU_GOLD_DATA_NON_TOKENIZED"], get_words_from_differentd_datasets_target_lang(lang)]
+    files = [param_dict[LANGUAGE_OPPOSITE_STR_MAP[lang]]["BLEU_GOLD_DATA_NON_TOKENIZED"], get_words_from_different_datasets_target_lang(lang)]
 
     if translation_model == 1:
         tokenizer =MarianTokenizer.from_pretrained(tokenizer_opus_mt+lang)
@@ -159,7 +162,6 @@ def get_and_save_all_vocabs(lang,translation_model):
         save_vocab_inlp_form(embedding_debiaswe,param_dict[LANGUAGE_OPPOSITE_STR_MAP[lang]]['VOCAB_EN_OPUS_MT'],param_dict[LANGUAGE_OPPOSITE_STR_MAP[lang]]["VOCAB_INLP_EN_OPUS_MT"])
     if translation_model == 2:
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_mbart50,src_lang="en_XX", tgt_lang=LANGUAGE_CODES_MAP[lang],model_max_length= 1024)
-        # tokenizer = AutoTokenizer.from_pretrained(tokenizer_mbart50,src_lang="en", tgt_lang=lang,model_max_length= 1024)
         get_vocab(tokenizer,files,param_dict[LANGUAGE_OPPOSITE_STR_MAP[lang]]["VOCAB_MBART50"])
         get_en_vocab(tokenizer,en_dataset_paths,param_dict[LANGUAGE_OPPOSITE_STR_MAP[lang]]['VOCAB_EN_MBART50'])
         save_vocab_inlp_form(embedding_debiaswe,param_dict[LANGUAGE_OPPOSITE_STR_MAP[lang]]["VOCAB_MBART50"],param_dict[LANGUAGE_OPPOSITE_STR_MAP[lang]]["VOCAB_INLP_MBART50"])
