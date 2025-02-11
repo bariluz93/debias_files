@@ -21,7 +21,6 @@ def evaluate_translation(language):
     print("non debiased")
     print(bleu.corpus_score(sys_non_debiased, [refs]))
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(

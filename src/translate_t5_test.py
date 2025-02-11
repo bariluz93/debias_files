@@ -1,10 +1,15 @@
 import argparse
 from easynmt import EasyNMT
 from consts import get_basic_configurations, LANGUAGE_STR_MAP, Language
-model = EasyNMT('opus-mt')
-
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = EasyNMT('mbart50_en2m')
+# batch_size = 200
+# if torch.cuda.device_count() > 1:
+#     print("Using", torch.cuda.device_count(), "GPUs!")
+#     model = nn.DataParallel(model)
+# model = model.to(device)
 def translate(input_file:str, output_file:str, config:str):
-    USE_DEBIASED, LANGUAGE, _, DEBIAS_METHOD, TRANSLATION_MODEL ,DEBIAS_ENCODER,BEGINNING_DECODER_DEBIAS,END_DECODER_DEBIAS,WORDS_TO_DEBIAS= get_basic_configurations(config)
+    USE_DEBIASED, LANGUAGE, _, DEBIAS_METHOD, _ ,DEBIAS_ENCODER,BEGINNING_DECODER_DEBIAS,END_DECODER_DEBIAS,WORDS_TO_DEBIAS= get_basic_configurations(config)
     with open(input_file, 'r') as input, open(output_file, 'w') as output:
         translations = model.translate(input.readlines(), source_lang='en',
                                        target_lang=LANGUAGE_STR_MAP[Language(LANGUAGE)],
@@ -14,15 +19,14 @@ def translate(input_file:str, output_file:str, config:str):
                                        debias_encoder=DEBIAS_ENCODER,
                                        beginning_decoder_debias=BEGINNING_DECODER_DEBIAS,
                                        end_decoder_debias=END_DECODER_DEBIAS,
-                                       words_to_debias=WORDS_TO_DEBIAS,
-                                       translation_model=TRANSLATION_MODEL)
+                                       words_to_debias=WORDS_TO_DEBIAS)
         output.writelines(translations)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-i', '--input', type=str,
-            help="input file")
+        help="input file")
     parser.add_argument(
         '-o', '--output', type=str,
         help="output file")

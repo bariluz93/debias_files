@@ -92,6 +92,7 @@ if [ $end_decoder_debias = 1 ]; then
     debias_loc="${debias_loc}_C"
 fi
 
+
 #################### translate anti sentences to test gender bias ####################
 input_path=${snapless_data_dir}/anti_data/anti.en
 outputh_path_debiased=${debias_outputs_dir}/${language_dir}/output/debiased_anti_${debias_method}_${model_str}${debias_loc}.out.tmp
